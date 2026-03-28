@@ -57,14 +57,32 @@ class UserDatabaseHelper(context: Context) :
 
     private fun seedUniversities(db: SQLiteDatabase) {
         val universities = listOf(
-            "RHU",
             "AUB",
             "LAU",
+            "UOB",
             "BAU",
             "LU",
             "NDU",
             "USEK",
-            "USJ"
+            "USJ",
+            "RHU",
+            "UA",
+            "HU",
+            "IUL",
+            "AOU",
+            "AUL",
+            "JU",
+            "MU",
+            "OU",
+            "MEU",
+            "LIU",
+            "MUBS",
+            "PU",
+            "TUT",
+            "CU",
+            "GU",
+            "LCU",
+            "MUT"
         )
 
         for (uni in universities) {

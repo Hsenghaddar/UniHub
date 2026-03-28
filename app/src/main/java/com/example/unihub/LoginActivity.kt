@@ -28,7 +28,7 @@ class LoginActivity : AppCompatActivity() {
         }
 
         binding.btnGoToRegister.setOnClickListener {
-            Toast.makeText(this, "Register screen will be added in the next stage", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
 

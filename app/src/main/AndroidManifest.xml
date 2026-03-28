@@ -10,6 +10,7 @@
         android:theme="@style/Theme.UniHub">
 
         <activity android:name=".HomeActivity" />
+        <activity android:name=".RegisterActivity" />
 
         <activity
             android:name=".LoginActivity"
