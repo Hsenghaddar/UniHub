@@ -185,4 +185,31 @@ class UserDatabaseHelper(context: Context) :
         cursor.close()
         return user
     }
+    fun updateUser(
+        firebaseUid: String,
+        fullName: String,
+        universityId: Int
+    ): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_FULL_NAME, fullName)
+            put(COL_UNIVERSITY_ID, universityId)
+        }
+
+        return db.update(
+            TABLE_USERS,
+            values,
+            "$COL_FIREBASE_UID = ?",
+            arrayOf(firebaseUid)
+        ) > 0
+    }
+
+    fun getMarketplaceCountForUser(firebaseUid: String): Int {
+        return 0
+    }
+
+    fun getRideCountForUser(firebaseUid: String): Int {
+        return 0
+    }
+
 }

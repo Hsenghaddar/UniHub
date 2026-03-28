@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.unihub.databinding.ActivityHomeBinding
 import com.google.firebase.auth.FirebaseAuth
+import android.content.Intent
 
 class HomeActivity : AppCompatActivity() {
 
@@ -59,11 +60,11 @@ class HomeActivity : AppCompatActivity() {
         }
 
         binding.cardMyPosts.setOnClickListener {
-            Toast.makeText(this, "My Posts screen will be added next", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, MyPostsActivity::class.java))
         }
 
         binding.cardProfile.setOnClickListener {
-            Toast.makeText(this, "Profile screen will be added next", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, ProfileActivity::class.java))
         }
     }
 }
