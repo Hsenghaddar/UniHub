@@ -52,7 +52,8 @@ class HomeActivity : AppCompatActivity() {
 
     private fun setupClicks() {
         binding.cardMarketplace.setOnClickListener {
-            Toast.makeText(this, "Marketplace screen will be added later", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, Marketplace::class.java))
+//            Toast.makeText(this, "Marketplace screen will be added later", Toast.LENGTH_SHORT).show()
         }
 
         binding.cardRides.setOnClickListener {
