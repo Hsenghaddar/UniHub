@@ -243,6 +243,14 @@ class UserDatabaseHelper(context: Context) :
         return count
     }
 
+    fun updateMarketplaceStock(itemId: Int, newStock: Int): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_ITEM_STOCK, newStock)
+        }
+        return db.update(TABLE_MARKETPLACE, values, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
+    }
+
     fun insertMarketplaceItem(
         title: String,
         description: String,

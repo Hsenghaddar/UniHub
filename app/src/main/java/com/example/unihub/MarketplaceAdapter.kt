@@ -5,8 +5,10 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.unihub.databinding.ItemMarketplaceBinding
 
-class MarketplaceAdapter(private val items: List<MarketplaceItem>) :
-    RecyclerView.Adapter<MarketplaceAdapter.MarketplaceViewHolder>() {
+class MarketplaceAdapter(
+    private val items: List<MarketplaceItem>,
+    private val onItemClick: (MarketplaceItem) -> Unit
+) : RecyclerView.Adapter<MarketplaceAdapter.MarketplaceViewHolder>() {
 
     class MarketplaceViewHolder(val binding: ItemMarketplaceBinding) :
         RecyclerView.ViewHolder(binding.root)
@@ -26,6 +28,10 @@ class MarketplaceAdapter(private val items: List<MarketplaceItem>) :
             tvItemTitle.text = item.title
             tvItemDescription.text = item.description
             tvCreatorName.text = "Added by: ${item.creatorName ?: "Unknown"}"
+            
+            root.setOnClickListener {
+                onItemClick(item)
+            }
         }
     }
 

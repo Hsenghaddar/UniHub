@@ -1,5 +1,6 @@
 package com.example.unihub
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,16 +19,23 @@ class Marketplace_Display_Items : AppCompatActivity() {
 
         db = UserDatabaseHelper(this)
 
-        setupRecyclerView()
-
         binding.btnBack.setOnClickListener {
             finish()
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        setupRecyclerView()
+    }
+
     private fun setupRecyclerView() {
         val items = db.getAllMarketplaceItems()
-        adapter = MarketplaceAdapter(items)
+        adapter = MarketplaceAdapter(items) { clickedItem ->
+            val intent = Intent(this, ItemDetailActivity::class.java)
+            intent.putExtra("ITEM_DATA", clickedItem)
+            startActivity(intent)
+        }
         binding.rvMarketplaceItems.layoutManager = LinearLayoutManager(this)
         binding.rvMarketplaceItems.adapter = adapter
     }
