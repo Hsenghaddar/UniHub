@@ -9,6 +9,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.UniHub">
         <activity
+            android:name=".Marketplace_Display_Items"
+            android:exported="false" />
+        <activity
             android:name=".Marketplace"
             android:exported="false" />
         <activity android:name=".MyPostsActivity" />

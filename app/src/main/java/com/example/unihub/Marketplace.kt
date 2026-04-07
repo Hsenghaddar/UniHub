@@ -1,5 +1,6 @@
 package com.example.unihub
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -25,11 +26,18 @@ class Marketplace : AppCompatActivity() {
         }
 
         binding.btnAddItem.setOnClickListener {
-            addItem()
+            val user = FirebaseAuth.getInstance().currentUser
+            if (user == null) {
+                Toast.makeText(this, "You must be logged in to add an item", Toast.LENGTH_LONG).show()
+                // Optional: Redirect to login activity
+                // startActivity(Intent(this, LoginActivity::class.java))
+            } else {
+                addItem()
+            }
         }
 
         binding.btnBrowseMarketplace.setOnClickListener {
-            Toast.makeText(this, "Browse marketplace screen will be added later", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, Marketplace_Display_Items::class.java))
         }
 
     }

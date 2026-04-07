@@ -263,6 +263,38 @@ class UserDatabaseHelper(context: Context) :
         return db.insert(TABLE_MARKETPLACE, null, values) != -1L
     }
 
+    fun getAllMarketplaceItems(): List<MarketplaceItem> {
+        val list = mutableListOf<MarketplaceItem>()
+        val db = readableDatabase
+        val query = """
+            SELECT m.*, u.$COL_FULL_NAME as creator_name
+            FROM $TABLE_MARKETPLACE m
+            LEFT JOIN $TABLE_USERS u ON m.$COL_ITEM_USER_UID = u.$COL_FIREBASE_UID
+            ORDER BY m.created_at DESC
+        """.trimIndent()
+        
+        val cursor = db.rawQuery(query, null)
+
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    MarketplaceItem(
+                        id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ID)),
+                        title = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_TITLE)),
+                        description = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_DESCRIPTION)),
+                        category = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_CATEGORY)),
+                        price = cursor.getDouble(cursor.getColumnIndexOrThrow(COL_ITEM_PRICE)),
+                        stock = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ITEM_STOCK)),
+                        userUid = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_USER_UID)),
+                        creatorName = cursor.getString(cursor.getColumnIndexOrThrow("creator_name"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
     fun getRideCountForUser(firebaseUid: String): Int {
         return 0
     }
