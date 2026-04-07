@@ -10,10 +10,11 @@ class UserDatabaseHelper(context: Context) :
 
     companion object {
         private const val DATABASE_NAME = "unihub.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
 
         private const val TABLE_USERS = "users"
         private const val TABLE_UNIVERSITIES = "universities"
+        private const val TABLE_MARKETPLACE = "marketplace_items"
 
         private const val COL_ID = "id"
         private const val COL_FIREBASE_UID = "firebase_uid"
@@ -21,6 +22,14 @@ class UserDatabaseHelper(context: Context) :
         private const val COL_EMAIL = "email"
         private const val COL_UNIVERSITY_ID = "university_id"
         private const val COL_UNIVERSITY_NAME = "university_name"
+
+        // Marketplace columns
+        private const val COL_ITEM_TITLE = "title"
+        private const val COL_ITEM_DESCRIPTION = "description"
+        private const val COL_ITEM_CATEGORY = "category"
+        private const val COL_ITEM_PRICE = "price"
+        private const val COL_ITEM_STOCK = "stock"
+        private const val COL_ITEM_USER_UID = "user_uid"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -43,13 +52,29 @@ class UserDatabaseHelper(context: Context) :
             )
         """.trimIndent()
 
+        val createMarketplaceTable = """
+            CREATE TABLE $TABLE_MARKETPLACE (
+                $COL_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COL_ITEM_TITLE TEXT NOT NULL,
+                $COL_ITEM_DESCRIPTION TEXT NOT NULL,
+                $COL_ITEM_CATEGORY TEXT NOT NULL,
+                $COL_ITEM_PRICE REAL NOT NULL,
+                $COL_ITEM_STOCK INTEGER NOT NULL,
+                $COL_ITEM_USER_UID TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY ($COL_ITEM_USER_UID) REFERENCES $TABLE_USERS($COL_FIREBASE_UID)
+            )
+        """.trimIndent()
+
         db.execSQL(createUniversitiesTable)
         db.execSQL(createUsersTable)
+        db.execSQL(createMarketplaceTable)
 
         seedUniversities(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_MARKETPLACE")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_UNIVERSITIES")
         onCreate(db)
@@ -205,11 +230,40 @@ class UserDatabaseHelper(context: Context) :
     }
 
     fun getMarketplaceCountForUser(firebaseUid: String): Int {
-        return 0
+        val db = readableDatabase
+        val cursor = db.rawQuery(
+            "SELECT COUNT(*) FROM $TABLE_MARKETPLACE WHERE $COL_ITEM_USER_UID = ?",
+            arrayOf(firebaseUid)
+        )
+        var count = 0
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0)
+        }
+        cursor.close()
+        return count
+    }
+
+    fun insertMarketplaceItem(
+        title: String,
+        description: String,
+        category: String,
+        price: Double,
+        stock: Int,
+        userUid: String
+    ): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_ITEM_TITLE, title)
+            put(COL_ITEM_DESCRIPTION, description)
+            put(COL_ITEM_CATEGORY, category)
+            put(COL_ITEM_PRICE, price)
+            put(COL_ITEM_STOCK, stock)
+            put(COL_ITEM_USER_UID, userUid)
+        }
+        return db.insert(TABLE_MARKETPLACE, null, values) != -1L
     }
 
     fun getRideCountForUser(firebaseUid: String): Int {
         return 0
     }
-
 }
