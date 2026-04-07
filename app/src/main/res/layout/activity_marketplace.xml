@@ -33,7 +33,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:text="Marketplace"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/black"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 tools:ignore="HardcodedText" />
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="Add New Item"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/black"
             android:textSize="18sp"
             android:textStyle="bold"
             tools:ignore="HardcodedText" />
@@ -53,50 +53,49 @@
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
+            android:layout_marginTop="12dp"
+            android:hint="Title"
+            android:textColorHint="@color/black">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etItemTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Title"
                 android:inputType="text"
-                android:textColor="#000000"
-                android:textColorHint="#000000" />
+                android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="8dp"
+            android:hint="Description"
+            android:textColorHint="@color/black">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etItemDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Description"
                 android:inputType="textMultiLine"
                 android:minLines="2"
-                android:textColor="#000000"
-                android:textColorHint="#000000" />
+                android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="8dp"
+            android:hint="Category"
+            android:textColorHint="@color/black">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etItemCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Category"
                 android:inputType="text"
-                android:textColor="#000000"
-                android:textColorHint="#000000"
-                />
+                android:textColor="@color/black" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
@@ -110,17 +109,16 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="4dp"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:hint="Price ($)"
+                android:textColorHint="@color/black">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etItemPrice"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Price ($)"
                     android:inputType="numberDecimal"
-                    android:textColor="#000000"
-                    android:textColorHint="#000000"
-                    />
+                    android:textColor="@color/black" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -128,17 +126,16 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
-                android:layout_weight="1">
+                android:layout_weight="1"
+                android:hint="Stock"
+                android:textColorHint="@color/black">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etItemStock"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Stock"
                     android:inputType="number"
-                    android:textColor="#000000"
-                    android:textColorHint="#000000"
-                    />
+                    android:textColor="@color/black" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
@@ -157,27 +154,14 @@
             android:layout_marginTop="24dp"
             android:background="@android:color/darker_gray" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <Button
+            android:id="@+id/btnBrowseMarketplace"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
             android:layout_marginTop="24dp"
             android:text="Browse Marketplace"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
-            android:textStyle="bold"
+            android:textAllCaps="false"
             tools:ignore="HardcodedText" />
 
-        <TextView
-            android:id="@+id/tvMarketPlaceHint"
-            android:layout_width="match_parent"
-            android:layout_height="94dp"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/bg_card_soft"
-            android:gravity="center"
-            android:padding="24dp"
-            android:text="Browse through the marketplace to find what you're looking for"
-            android:textColor="@color/text_secondary"
-            android:textSize="16sp"
-            tools:ignore="HardcodedText" />
     </LinearLayout>
 </ScrollView>

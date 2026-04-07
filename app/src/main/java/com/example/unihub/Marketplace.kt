@@ -28,7 +28,10 @@ class Marketplace : AppCompatActivity() {
             addItem()
         }
 
-        updateUI()
+        binding.btnBrowseMarketplace.setOnClickListener {
+            Toast.makeText(this, "Browse marketplace screen will be added later", Toast.LENGTH_SHORT).show()
+        }
+
     }
 
     private fun addItem() {
@@ -62,7 +65,6 @@ class Marketplace : AppCompatActivity() {
         if (success) {
             Toast.makeText(this, "Item posted successfully", Toast.LENGTH_SHORT).show()
             clearFields()
-            updateUI()
         } else {
             Toast.makeText(this, "Failed to post item", Toast.LENGTH_SHORT).show()
         }
@@ -76,18 +78,7 @@ class Marketplace : AppCompatActivity() {
         binding.etItemStock.text?.clear()
     }
 
-    private fun updateUI() {
-        val userUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val count = db.getMarketplaceCountForUser(userUid)
-        if (count > 0) {
-            binding.tvMarketPlaceHint.text = "You have $count active post(s)."
-        } else {
-            binding.tvMarketPlaceHint.text = "You have no posts yet."
-        }
-    }
-
     override fun onResume() {
         super.onResume()
-        updateUI()
     }
 }
