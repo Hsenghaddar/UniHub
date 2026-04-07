@@ -306,4 +306,61 @@ class UserDatabaseHelper(context: Context) :
     fun getRideCountForUser(firebaseUid: String): Int {
         return 0
     }
+
+    fun getMarketplaceItemsByUser(userUid: String): List<MarketplaceItem> {
+        val list = mutableListOf<MarketplaceItem>()
+        val db = readableDatabase
+        val query = """
+            SELECT m.*, u.$COL_FULL_NAME as creator_name
+            FROM $TABLE_MARKETPLACE m
+            LEFT JOIN $TABLE_USERS u ON m.$COL_ITEM_USER_UID = u.$COL_FIREBASE_UID
+            WHERE m.$COL_ITEM_USER_UID = ?
+            ORDER BY m.created_at DESC
+        """.trimIndent()
+        
+        val cursor = db.rawQuery(query, arrayOf(userUid))
+
+        if (cursor.moveToFirst()) {
+            do {
+                list.add(
+                    MarketplaceItem(
+                        id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ID)),
+                        title = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_TITLE)),
+                        description = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_DESCRIPTION)),
+                        category = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_CATEGORY)),
+                        price = cursor.getDouble(cursor.getColumnIndexOrThrow(COL_ITEM_PRICE)),
+                        stock = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ITEM_STOCK)),
+                        userUid = cursor.getString(cursor.getColumnIndexOrThrow(COL_ITEM_USER_UID)),
+                        creatorName = cursor.getString(cursor.getColumnIndexOrThrow("creator_name"))
+                    )
+                )
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return list
+    }
+
+    fun updateMarketplaceItem(
+        itemId: Int,
+        title: String,
+        description: String,
+        category: String,
+        price: Double,
+        stock: Int
+    ): Boolean {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_ITEM_TITLE, title)
+            put(COL_ITEM_DESCRIPTION, description)
+            put(COL_ITEM_CATEGORY, category)
+            put(COL_ITEM_PRICE, price)
+            put(COL_ITEM_STOCK, stock)
+        }
+        return db.update(TABLE_MARKETPLACE, values, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
+    }
+
+    fun deleteMarketplaceItem(itemId: Int): Boolean {
+        val db = writableDatabase
+        return db.delete(TABLE_MARKETPLACE, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
+    }
 }
