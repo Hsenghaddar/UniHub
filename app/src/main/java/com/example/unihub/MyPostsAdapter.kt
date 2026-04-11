@@ -7,12 +7,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.unihub.databinding.ItemMyPostBinding
 
 class MyPostsAdapter(
-    private var items: List<MarketplaceItem>,
-    private val onEditClick: (MarketplaceItem) -> Unit,
+    private var items: List<PostItem>,
+    private val onEditClick: (PostItem) -> Unit,
     private val onSelectionChanged: () -> Unit
 ) : RecyclerView.Adapter<MyPostsAdapter.MyPostViewHolder>() {
 
-    private val selectedItems = mutableSetOf<Int>()
+    private val selectedItems = mutableSetOf<String>() // Use String to differentiate types, e.g., "M_1", "R_1"
     private var isSelectionMode = false
 
     class MyPostViewHolder(val binding: ItemMyPostBinding) :
@@ -28,23 +28,28 @@ class MyPostsAdapter(
     }
 
     override fun onBindViewHolder(holder: MyPostViewHolder, position: Int) {
-        val item = items[position]
+        val post = items[position]
+        val uniqueId = when(post) {
+            is PostItem.Marketplace -> "M_${post.item.id}"
+            is PostItem.RidePost -> "R_${post.ride.id}"
+        }
+
         holder.binding.apply {
-            tvPostTitle.text = item.title
-            tvPostDescription.text = item.description
+            tvPostTitle.text = post.title
+            tvPostDescription.text = post.description
 
             cbSelect.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
-            cbSelect.isChecked = selectedItems.contains(item.id)
+            cbSelect.isChecked = selectedItems.contains(uniqueId)
 
             btnEdit.visibility = if (isSelectionMode) View.GONE else View.VISIBLE
 
-            btnEdit.setOnClickListener { onEditClick(item) }
+            btnEdit.setOnClickListener { onEditClick(post) }
 
             cbSelect.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) {
-                    selectedItems.add(item.id)
+                    selectedItems.add(uniqueId)
                 } else {
-                    selectedItems.remove(item.id)
+                    selectedItems.remove(uniqueId)
                 }
                 onSelectionChanged()
             }
@@ -52,7 +57,7 @@ class MyPostsAdapter(
             root.setOnLongClickListener {
                 if (!isSelectionMode) {
                     isSelectionMode = true
-                    selectedItems.add(item.id)
+                    selectedItems.add(uniqueId)
                     notifyDataSetChanged()
                     onSelectionChanged()
                 }
@@ -63,12 +68,12 @@ class MyPostsAdapter(
 
     override fun getItemCount(): Int = items.size
 
-    fun updateItems(newItems: List<MarketplaceItem>) {
+    fun updateItems(newItems: List<PostItem>) {
         items = newItems
         notifyDataSetChanged()
     }
 
-    fun getSelectedIds(): List<Int> = selectedItems.toList()
+    fun getSelectedUniqueIds(): List<String> = selectedItems.toList()
 
     fun isSelectionMode(): Boolean = isSelectionMode
 

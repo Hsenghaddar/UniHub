@@ -11,11 +11,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.unihub.databinding.ActivityMyPostsBinding
 import com.example.unihub.databinding.DialogEditItemBinding
 import com.google.firebase.auth.FirebaseAuth
+import android.content.Intent
 
 class MyPostsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMyPostsBinding
-    private lateinit var db: UserDatabaseHelper
+    private lateinit var userDb: UserDatabaseHelper
+    private lateinit var rideDb: DatabaseHelper
     private lateinit var adapter: MyPostsAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +25,8 @@ class MyPostsActivity : AppCompatActivity() {
         binding = ActivityMyPostsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        db = UserDatabaseHelper(this)
+        userDb = UserDatabaseHelper(this)
+        rideDb = DatabaseHelper(this)
 
         setupRecyclerView()
 
@@ -49,7 +52,6 @@ class MyPostsActivity : AppCompatActivity() {
 
         loadData()
 
-        // Modern way to handle back button
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (adapter.isSelectionMode()) {
@@ -63,8 +65,8 @@ class MyPostsActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = MyPostsAdapter(emptyList(), { item ->
-            showEditDialog(item)
+        adapter = MyPostsAdapter(emptyList(), { post ->
+            handleEditPost(post)
         }, {
             updateDeleteButtonVisibility()
         })
@@ -76,11 +78,18 @@ class MyPostsActivity : AppCompatActivity() {
         val firebaseUser = FirebaseAuth.getInstance().currentUser ?: return
         val userUid = firebaseUser.uid
 
-        val items = db.getMarketplaceItemsByUser(userUid)
-        adapter.updateItems(items)
+        val marketplaceItems = userDb.getMarketplaceItemsByUser(userUid)
+        val rides = rideDb.getRidesByUser(userUid)
 
-        val marketplaceCount = items.size
-        val rideCount = db.getRideCountForUser(userUid)
+        val combinedItems = mutableListOf<PostItem>()
+        combinedItems.addAll(marketplaceItems.map { PostItem.Marketplace(it) })
+        combinedItems.addAll(rides.map { PostItem.RidePost(it) })
+        
+        // Sort by some criteria if needed, e.g., created_at. For now, just add them.
+        adapter.updateItems(combinedItems)
+
+        val marketplaceCount = marketplaceItems.size
+        val rideCount = rides.size
 
         binding.tvMarketplaceCount.text = marketplaceCount.toString()
         binding.tvRideCount.text = rideCount.toString()
@@ -103,18 +112,25 @@ class MyPostsActivity : AppCompatActivity() {
     }
 
     private fun deleteSelectedItems() {
-        val selectedIds = adapter.getSelectedIds()
-        if (selectedIds.isEmpty()) return
+        val selectedUniqueIds = adapter.getSelectedUniqueIds()
+        if (selectedUniqueIds.isEmpty()) return
 
         AlertDialog.Builder(this)
             .setTitle("Delete Posts")
-            .setMessage("Are you sure you want to delete ${selectedIds.size} post(s)?")
+            .setMessage("Are you sure you want to delete ${selectedUniqueIds.size} post(s)?")
             .setPositiveButton("Delete") { _, _ ->
                 var successCount = 0
-                for (id in selectedIds) {
-                    if (db.deleteMarketplaceItem(id)) {
-                        successCount++
+                for (uniqueId in selectedUniqueIds) {
+                    val id = uniqueId.substring(2).toInt()
+                    val type = uniqueId.substring(0, 1)
+                    
+                    val success = if (type == "M") {
+                        userDb.deleteMarketplaceItem(id)
+                    } else {
+                        rideDb.deleteRide(id)
                     }
+                    
+                    if (success) successCount++
                 }
                 Toast.makeText(this, "Deleted $successCount posts", Toast.LENGTH_SHORT).show()
                 adapter.exitSelectionMode()
@@ -124,7 +140,19 @@ class MyPostsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showEditDialog(item: MarketplaceItem) {
+    private fun handleEditPost(post: PostItem) {
+        when (post) {
+            is PostItem.Marketplace -> showMarketplaceEditDialog(post.item)
+            is PostItem.RidePost -> {
+                val intent = Intent(this, AddRideActivity::class.java)
+                intent.putExtra("EDIT_MODE", true)
+                intent.putExtra("RIDE_ID", post.ride.id)
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun showMarketplaceEditDialog(item: MarketplaceItem) {
         val dialogBinding = DialogEditItemBinding.inflate(LayoutInflater.from(this))
         
         dialogBinding.etEditTitle.setText(item.title)
@@ -142,7 +170,7 @@ class MyPostsActivity : AppCompatActivity() {
                 val price = dialogBinding.etEditPrice.text.toString().toDoubleOrNull() ?: item.price
                 val stock = dialogBinding.etEditStock.text.toString().toIntOrNull() ?: item.stock
 
-                val success = db.updateMarketplaceItem(item.id, title, desc, cat, price, stock)
+                val success = userDb.updateMarketplaceItem(item.id, title, desc, cat, price, stock)
                 if (success) {
                     Toast.makeText(this, "Item updated", Toast.LENGTH_SHORT).show()
                     loadData()
@@ -152,5 +180,10 @@ class MyPostsActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadData()
     }
 }
