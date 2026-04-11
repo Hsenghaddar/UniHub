@@ -50,12 +50,9 @@ public class ChatActivity extends AppCompatActivity {
         receiverName = getIntent().getStringExtra("RECEIVER_NAME");
         itemId = getIntent().getIntExtra("ITEM_ID", -1);
 
-        setSupportActionBar(binding.toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(receiverName != null ? receiverName : "Chat");
-        }
-        binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.tvHeaderTitle.setText(receiverName != null ? receiverName : "Chat");
+        binding.btnBack.setOnClickListener(v -> finish());
+        binding.btnSendLink.setOnClickListener(v -> showItemSelectionDialog());
 
         setupItemPreview();
         setupRecyclerView();
@@ -68,22 +65,7 @@ public class ChatActivity extends AppCompatActivity {
         binding.btnSend.setOnClickListener(v -> sendMessage());
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        menu.add(0, 101, 0, "Send Purchase Link")
-            .setIcon(android.R.drawable.ic_menu_send)
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == 101) {
-            showItemSelectionDialog();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
+    /* Options menu logic removed in favor of btnSendLink in custom header */
 
     private void showItemSelectionDialog() {
         List<MarketplaceItem> myItems = userDbHelper.getMarketplaceItemsByUser(currentUserUid);
@@ -147,7 +129,7 @@ public class ChatActivity extends AppCompatActivity {
             binding.tvItemPreviewTitle.setText(item.getTitle());
             binding.tvItemPreviewPrice.setText(String.format("$%.2f", item.getPrice()));
             if (item.getImageUri() != null) {
-                binding.ivItemPreview.setImageURI(Uri.parse(item.getImageUri()));
+                ImageUtils.INSTANCE.loadImage(this, Uri.parse(item.getImageUri()), binding.ivItemPreview);
             }
         } else {
             binding.cardItemPreview.setVisibility(View.GONE);

@@ -23,9 +23,7 @@ class ContactsActivity : AppCompatActivity() {
         binding = ActivityContactsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.btnBack.setOnClickListener { finish() }
 
         db = DatabaseHelper(this)
         userDb = UserDatabaseHelper(this)
@@ -120,7 +118,7 @@ class ContactsActivity : AppCompatActivity() {
             holder.binding.tvLastMessage.text = contact.lastMessage
             
             if (contact.imageUri != null) {
-                holder.binding.ivContactAvatar.setImageURI(Uri.parse(contact.imageUri))
+                ImageUtils.loadImage(holder.binding.root.context, Uri.parse(contact.imageUri), holder.binding.ivContactAvatar)
             } else {
                 // Using a system default icon as a placeholder
                 holder.binding.ivContactAvatar.setImageResource(android.R.drawable.ic_menu_gallery)

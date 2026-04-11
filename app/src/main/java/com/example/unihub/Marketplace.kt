@@ -17,6 +17,7 @@ import androidx.core.content.FileProvider
 import com.example.unihub.databinding.ActivityMarketplaceBinding
 import com.google.firebase.auth.FirebaseAuth
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -29,23 +30,26 @@ class Marketplace : AppCompatActivity() {
     private var selectedImageUri: Uri? = null
     private var cameraImageUri: Uri? = null
 
-    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
-            selectedImageUri = it
-            binding.ivSelectedImage.setImageURI(it)
-            binding.layoutPickHint.visibility = View.GONE
-            
-            try {
-                contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (e: Exception) {}
+            val savedUri = saveImageToInternalStorage(it)
+            if (savedUri != null) {
+                selectedImageUri = savedUri
+                ImageUtils.loadImage(this, savedUri, binding.ivSelectedImage)
+                binding.layoutPickHint.visibility = View.GONE
+            } else {
+                Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             selectedImageUri = cameraImageUri
-            binding.ivSelectedImage.setImageURI(selectedImageUri)
-            binding.layoutPickHint.visibility = View.GONE
+            try {
+                selectedImageUri?.let { ImageUtils.loadImage(this, it, binding.ivSelectedImage) }
+                binding.layoutPickHint.visibility = View.GONE
+            } catch (e: Exception) {}
         }
     }
 
@@ -66,9 +70,18 @@ class Marketplace : AppCompatActivity() {
 
         db = UserDatabaseHelper(this)
 
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.btnBack.setOnClickListener { finish() }
+
+        if (savedInstanceState != null) {
+            cameraImageUri = savedInstanceState.getParcelable("cameraImageUri")
+            selectedImageUri = savedInstanceState.getParcelable("selectedImageUri")
+            selectedImageUri?.let {
+                try {
+                    ImageUtils.loadImage(this, it, binding.ivSelectedImage)
+                    binding.layoutPickHint.visibility = View.GONE
+                } catch (e: Exception) {}
+            }
+        }
 
         binding.cardImagePicker.setOnClickListener {
             showImagePickerDialog()
@@ -94,7 +107,7 @@ class Marketplace : AppCompatActivity() {
             .setItems(options) { dialog, which ->
                 when (which) {
                     0 -> checkCameraPermissionAndOpen()
-                    1 -> pickImageLauncher.launch("image/*")
+                    1 -> pickImageLauncher.launch(arrayOf("image/*"))
                     2 -> dialog.dismiss()
                 }
             }
@@ -115,12 +128,13 @@ class Marketplace : AppCompatActivity() {
     private fun openCamera() {
         try {
             val photoFile = createImageFile()
-            cameraImageUri = FileProvider.getUriForFile(
+            val uri = FileProvider.getUriForFile(
                 this,
                 "com.example.unihub.fileprovider",
                 photoFile
             )
-            takePictureLauncher.launch(cameraImageUri)
+            cameraImageUri = uri
+            takePictureLauncher.launch(uri)
         } catch (ex: IOException) {
             Toast.makeText(this, "Error creating file", Toast.LENGTH_SHORT).show()
         }
@@ -131,6 +145,23 @@ class Marketplace : AppCompatActivity() {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
         return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
+    }
+
+    private fun saveImageToInternalStorage(uri: Uri): Uri? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val photoFile = createImageFile()
+            val outputStream = FileOutputStream(photoFile)
+            inputStream.use { input ->
+                outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            FileProvider.getUriForFile(this, "com.example.unihub.fileprovider", photoFile)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     private fun addItem() {
@@ -166,5 +197,11 @@ class Marketplace : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Failed to post item", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable("cameraImageUri", cameraImageUri)
+        outState.putParcelable("selectedImageUri", selectedImageUri)
     }
 }

@@ -32,7 +32,7 @@ class MarketplaceAdapter(
             
             if (item.imageUri != null) {
                 try {
-                    ivItemImage.setImageURI(Uri.parse(item.imageUri))
+                    ImageUtils.loadImage(root.context, Uri.parse(item.imageUri), ivItemImage)
                 } catch (e: Exception) {
                     ivItemImage.setImageResource(android.R.drawable.ic_menu_gallery)
                 }

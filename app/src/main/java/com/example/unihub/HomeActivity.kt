@@ -53,7 +53,7 @@ class HomeActivity : AppCompatActivity() {
         // Load profile picture
         if (localUser.imageUri != null) {
             try {
-                binding.ivProfileImage.setImageURI(Uri.parse(localUser.imageUri))
+                ImageUtils.loadImage(this, Uri.parse(localUser.imageUri), binding.ivProfileImage)
             } catch (e: Exception) {
                 binding.ivProfileImage.setImageResource(android.R.drawable.ic_menu_gallery)
             }

@@ -133,7 +133,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     }
                     tvItemTitle.setText(title);
                     if (item.getImageUri() != null) {
-                        ivItem.setImageURI(Uri.parse(item.getImageUri()));
+                        ImageUtils.INSTANCE.loadImage(itemView.getContext(), Uri.parse(item.getImageUri()), ivItem);
                     }
                 }
             } else {
@@ -195,7 +195,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     }
                     tvItemTitle.setText(title);
                     if (item.getImageUri() != null) {
-                        ivItem.setImageURI(Uri.parse(item.getImageUri()));
+                        ImageUtils.INSTANCE.loadImage(itemView.getContext(), Uri.parse(item.getImageUri()), ivItem);
                     }
                 }
             } else {

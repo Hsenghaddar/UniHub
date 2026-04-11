@@ -1,20 +1,25 @@
 package com.example.unihub
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.example.unihub.databinding.ActivityProfileBinding
 import com.google.firebase.auth.FirebaseAuth
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -29,16 +34,14 @@ class ProfileActivity : AppCompatActivity() {
     private var selectedImageUri: Uri? = null
     private var cameraImageUri: Uri? = null
 
-    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            selectedImageUri = result.data?.data
-            selectedImageUri?.let {
-                try {
-                    contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                } catch (e: SecurityException) {
-                    // Handle case where permission cannot be persisted (e.g. some third party apps)
-                }
-                binding.ivProfilePicture.setImageURI(it)
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            val savedUri = saveImageToInternalStorage(it)
+            if (savedUri != null) {
+                selectedImageUri = savedUri
+                ImageUtils.loadImage(this, savedUri, binding.ivProfilePicture)
+            } else {
+                Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -47,8 +50,18 @@ class ProfileActivity : AppCompatActivity() {
         if (success) {
             cameraImageUri?.let {
                 selectedImageUri = it
-                binding.ivProfilePicture.setImageURI(it)
+                ImageUtils.loadImage(this, it, binding.ivProfilePicture)
             }
+        }
+    }
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            startCamera()
+        } else {
+            Toast.makeText(this, "Camera permission is required to take photos", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -60,6 +73,14 @@ class ProfileActivity : AppCompatActivity() {
         db = UserDatabaseHelper(this)
         auth = FirebaseAuth.getInstance()
         sessionManager = SessionManager(this)
+
+        if (savedInstanceState != null) {
+            cameraImageUri = savedInstanceState.getParcelable("cameraImageUri")
+            selectedImageUri = savedInstanceState.getParcelable("selectedImageUri")
+            selectedImageUri?.let {
+                ImageUtils.loadImage(this, it, binding.ivProfilePicture)
+            }
+        }
 
         setupUniversitySpinner()
         loadUserData()
@@ -93,7 +114,7 @@ class ProfileActivity : AppCompatActivity() {
         builder.setTitle("Change Profile Picture")
         builder.setItems(options) { dialog, which ->
             when (which) {
-                0 -> startCamera()
+                0 -> checkCameraPermissionAndOpen()
                 1 -> startGallery()
                 2 -> dialog.dismiss()
             }
@@ -101,23 +122,31 @@ class ProfileActivity : AppCompatActivity() {
         builder.show()
     }
 
-    private fun startGallery() {
-        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "image/*"
+    private fun checkCameraPermissionAndOpen() {
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                startCamera()
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
-        pickImageLauncher.launch(intent)
+    }
+
+    private fun startGallery() {
+        pickImageLauncher.launch(arrayOf("image/*"))
     }
 
     private fun startCamera() {
         try {
             val photoFile = createImageFile()
-            cameraImageUri = FileProvider.getUriForFile(
+            val uri = FileProvider.getUriForFile(
                 this,
                 "com.example.unihub.fileprovider",
                 photoFile
             )
-            takePhotoLauncher.launch(cameraImageUri)
+            cameraImageUri = uri
+            takePhotoLauncher.launch(uri)
         } catch (ex: IOException) {
             Toast.makeText(this, "Error creating file for camera", Toast.LENGTH_SHORT).show()
         }
@@ -132,6 +161,23 @@ class ProfileActivity : AppCompatActivity() {
             ".jpg",
             storageDir
         )
+    }
+
+    private fun saveImageToInternalStorage(uri: Uri): Uri? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val photoFile = createImageFile()
+            val outputStream = FileOutputStream(photoFile)
+            inputStream.use { input ->
+                outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            FileProvider.getUriForFile(this, "com.example.unihub.fileprovider", photoFile)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     private fun setupUniversitySpinner() {
@@ -152,8 +198,16 @@ class ProfileActivity : AppCompatActivity() {
         binding.etProfileFullName.setText(localUser.fullName)
         binding.etProfileEmail.setText(localUser.email)
 
-        localUser.imageUri?.let {
-            binding.ivProfilePicture.setImageURI(Uri.parse(it))
+        if (selectedImageUri == null) {
+            localUser.imageUri?.let {
+                try {
+                    val uri = Uri.parse(it)
+                    ImageUtils.loadImage(this, uri, binding.ivProfilePicture)
+                    selectedImageUri = uri
+                } catch (e: Exception) {
+                    binding.ivProfilePicture.setImageResource(android.R.drawable.ic_menu_gallery)
+                }
+            }
         }
 
         val universityName = db.getUniversityNameById(localUser.universityId)
@@ -192,5 +246,11 @@ class ProfileActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, "Profile update failed", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putParcelable("cameraImageUri", cameraImageUri)
+        outState.putParcelable("selectedImageUri", selectedImageUri)
     }
 }

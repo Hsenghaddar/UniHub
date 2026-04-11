@@ -57,7 +57,7 @@ class ItemDetailActivity : AppCompatActivity() {
             
             if (it.imageUri != null) {
                 try {
-                    binding.ivItemImage.setImageURI(Uri.parse(it.imageUri))
+                    ImageUtils.loadImage(this, Uri.parse(it.imageUri), binding.ivItemImage)
                 } catch (e: Exception) {
                     binding.ivItemImage.setImageResource(android.R.drawable.ic_menu_gallery)
                 }
