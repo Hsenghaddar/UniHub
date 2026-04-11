@@ -12,7 +12,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "unihub_rides.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 7;
 
     // Table Rides
     private static final String TABLE_RIDES = "rides";
@@ -29,6 +29,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_NOTE = "note";
     private static final String COL_STATUS = "status";
     private static final String COL_UNIVERSITY_ID = "university_id";
+    private static final String COL_RIDE_HAS_NOTIFICATION = "has_notification";
 
     // Table Ride Requests
     private static final String TABLE_REQUESTS = "ride_requests";
@@ -37,6 +38,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_REQ_USER_UID = "requester_uid";
     private static final String COL_REQ_USER_NAME = "requester_name";
     private static final String COL_REQ_STATUS = "status";
+
+    // Table Messages
+    private static final String TABLE_MESSAGES = "messages";
+    private static final String COL_MSG_ID = "id";
+    private static final String COL_SENDER_UID = "sender_uid";
+    private static final String COL_SENDER_NAME = "sender_name";
+    private static final String COL_RECEIVER_UID = "receiver_uid";
+    private static final String COL_MSG_TEXT = "message_text";
+    private static final String COL_MSG_ITEM_ID = "item_id";
+    private static final String COL_MSG_TYPE = "message_type"; // 0: normal, 1: purchase_request, 2: purchase_completed
+    private static final String COL_TIMESTAMP = "timestamp";
+    private static final String COL_IS_READ = "is_read";
+    private static final String COL_MSG_PRICE = "price";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -57,7 +71,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_AVAILABLE_SEATS + " INTEGER, " +
                 COL_NOTE + " TEXT, " +
                 COL_STATUS + " TEXT, " +
-                COL_UNIVERSITY_ID + " INTEGER)";
+                COL_UNIVERSITY_ID + " INTEGER, " +
+                COL_RIDE_HAS_NOTIFICATION + " INTEGER DEFAULT 0)";
 
         String createRequestsTable = "CREATE TABLE " + TABLE_REQUESTS + " (" +
                 COL_REQ_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -67,18 +82,50 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_REQ_STATUS + " TEXT, " +
                 "FOREIGN KEY(" + COL_REQ_RIDE_ID + ") REFERENCES " + TABLE_RIDES + "(" + COL_RIDE_ID + "))";
 
+        String createMessagesTable = "CREATE TABLE " + TABLE_MESSAGES + " (" +
+                COL_MSG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_SENDER_UID + " TEXT, " +
+                COL_SENDER_NAME + " TEXT, " +
+                COL_RECEIVER_UID + " TEXT, " +
+                COL_MSG_TEXT + " TEXT, " +
+                COL_MSG_ITEM_ID + " INTEGER DEFAULT -1, " +
+                COL_MSG_TYPE + " INTEGER DEFAULT 0, " +
+                COL_TIMESTAMP + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                COL_IS_READ + " INTEGER DEFAULT 0, " +
+                COL_MSG_PRICE + " REAL DEFAULT 0.0)";
+
         db.execSQL(createRidesTable);
         db.execSQL(createRequestsTable);
+        db.execSQL(createMessagesTable);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_REQUESTS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_RIDES);
-        onCreate(db);
+        if (oldVersion < 3) {
+            String createMessagesTable = "CREATE TABLE IF NOT EXISTS " + TABLE_MESSAGES + " (" +
+                    COL_MSG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COL_SENDER_UID + " TEXT, " +
+                    COL_SENDER_NAME + " TEXT, " +
+                    COL_RECEIVER_UID + " TEXT, " +
+                    COL_MSG_TEXT + " TEXT, " +
+                    COL_TIMESTAMP + " DATETIME DEFAULT CURRENT_TIMESTAMP)";
+            db.execSQL(createMessagesTable);
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE " + TABLE_MESSAGES + " ADD COLUMN " + COL_MSG_ITEM_ID + " INTEGER DEFAULT -1");
+            db.execSQL("ALTER TABLE " + TABLE_RIDES + " ADD COLUMN " + COL_RIDE_HAS_NOTIFICATION + " INTEGER DEFAULT 0");
+        }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE " + TABLE_MESSAGES + " ADD COLUMN " + COL_MSG_TYPE + " INTEGER DEFAULT 0");
+        }
+        if (oldVersion < 6) {
+            db.execSQL("ALTER TABLE " + TABLE_MESSAGES + " ADD COLUMN " + COL_IS_READ + " INTEGER DEFAULT 0");
+        }
+        if (oldVersion < 7) {
+            db.execSQL("ALTER TABLE " + TABLE_MESSAGES + " ADD COLUMN " + COL_MSG_PRICE + " REAL DEFAULT 0.0");
+        }
     }
 
-    // Methods
     public boolean insertRide(Ride ride) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -94,6 +141,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_NOTE, ride.getNote());
         values.put(COL_STATUS, ride.getStatus());
         values.put(COL_UNIVERSITY_ID, ride.getUniversityId());
+        values.put(COL_RIDE_HAS_NOTIFICATION, ride.isHasNotification() ? 1 : 0);
 
         long result = db.insert(TABLE_RIDES, null, values);
         return result != -1;
@@ -148,6 +196,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_REQ_STATUS, request.getStatus());
 
         long result = db.insert(TABLE_REQUESTS, null, values);
+        if (result != -1) {
+            setRideNotification(request.getRideId(), true);
+        }
         return result != -1;
     }
 
@@ -182,6 +233,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_STATUS, status);
+        return db.update(TABLE_RIDES, values, COL_RIDE_ID + "=?", new String[]{String.valueOf(rideId)}) > 0;
+    }
+
+    public boolean setRideNotification(int rideId, boolean hasNotification) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_RIDE_HAS_NOTIFICATION, hasNotification ? 1 : 0);
         return db.update(TABLE_RIDES, values, COL_RIDE_ID + "=?", new String[]{String.valueOf(rideId)}) > 0;
     }
 
@@ -220,6 +278,76 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return rides;
     }
 
+    // Message Methods
+    public boolean insertMessage(String senderUid, String senderName, String receiverUid, String text) {
+        return insertMessage(senderUid, senderName, receiverUid, text, -1, 0, 0.0);
+    }
+
+    public boolean insertMessage(String senderUid, String senderName, String receiverUid, String text, int itemId) {
+        return insertMessage(senderUid, senderName, receiverUid, text, itemId, 0, 0.0);
+    }
+
+    public boolean insertMessage(String senderUid, String senderName, String receiverUid, String text, int itemId, int type) {
+        return insertMessage(senderUid, senderName, receiverUid, text, itemId, type, 0.0);
+    }
+
+    public boolean insertMessage(String senderUid, String senderName, String receiverUid, String text, int itemId, int type, double price) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_SENDER_UID, senderUid);
+        values.put(COL_SENDER_NAME, senderName);
+        values.put(COL_RECEIVER_UID, receiverUid);
+        values.put(COL_MSG_TEXT, text);
+        values.put(COL_MSG_ITEM_ID, itemId);
+        values.put(COL_MSG_TYPE, type);
+        values.put(COL_MSG_PRICE, price);
+        values.put(COL_IS_READ, 0);
+        return db.insert(TABLE_MESSAGES, null, values) != -1;
+    }
+
+    public boolean updateMessageType(int msgId, int newType) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_MSG_TYPE, newType);
+        return db.update(TABLE_MESSAGES, values, COL_MSG_ID + "=?", new String[]{String.valueOf(msgId)}) > 0;
+    }
+
+    public boolean markMessagesAsRead(String currentUserId, String otherUserId, int itemId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_IS_READ, 1);
+        String whereClause = COL_RECEIVER_UID + "=? AND " + COL_SENDER_UID + "=? AND " + COL_MSG_ITEM_ID + "=?";
+        return db.update(TABLE_MESSAGES, values, whereClause, new String[]{currentUserId, otherUserId, String.valueOf(itemId)}) > 0;
+    }
+
+    public List<Message> getMessages(String user1Uid, String user2Uid) {
+        List<Message> messages = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_MESSAGES + " WHERE " +
+                "(" + COL_SENDER_UID + "=? AND " + COL_RECEIVER_UID + "=?) OR " +
+                "(" + COL_SENDER_UID + "=? AND " + COL_RECEIVER_UID + "=?) " +
+                "ORDER BY " + COL_TIMESTAMP + " ASC";
+        Cursor cursor = db.rawQuery(query, new String[]{user1Uid, user2Uid, user2Uid, user1Uid});
+
+        if (cursor.moveToFirst()) {
+            do {
+                messages.add(new Message(
+                        cursor.getInt(cursor.getColumnIndexOrThrow(COL_MSG_ID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COL_SENDER_UID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COL_SENDER_NAME)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COL_RECEIVER_UID)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COL_MSG_TEXT)),
+                        cursor.getString(cursor.getColumnIndexOrThrow(COL_TIMESTAMP)),
+                        cursor.getInt(cursor.getColumnIndexOrThrow(COL_MSG_ITEM_ID)),
+                        cursor.getInt(cursor.getColumnIndexOrThrow(COL_MSG_TYPE)),
+                        cursor.getDouble(cursor.getColumnIndexOrThrow(COL_MSG_PRICE))
+                ));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return messages;
+    }
+
     private Ride cursorToRide(Cursor cursor) {
         return new Ride(
                 cursor.getInt(cursor.getColumnIndexOrThrow(COL_RIDE_ID)),
@@ -234,7 +362,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 cursor.getInt(cursor.getColumnIndexOrThrow(COL_AVAILABLE_SEATS)),
                 cursor.getString(cursor.getColumnIndexOrThrow(COL_NOTE)),
                 cursor.getString(cursor.getColumnIndexOrThrow(COL_STATUS)),
-                cursor.getInt(cursor.getColumnIndexOrThrow(COL_UNIVERSITY_ID))
+                cursor.getInt(cursor.getColumnIndexOrThrow(COL_UNIVERSITY_ID)),
+                cursor.getInt(cursor.getColumnIndexOrThrow(COL_RIDE_HAS_NOTIFICATION)) == 1
         );
     }
 }

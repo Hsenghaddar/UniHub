@@ -50,6 +50,10 @@ class MyPostsActivity : AppCompatActivity() {
             }
         }
 
+        binding.btnSalesPannel.setOnClickListener {
+            startActivity(Intent(this, SalesActivity::class.java))
+        }
+
         loadData()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -65,13 +69,42 @@ class MyPostsActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        adapter = MyPostsAdapter(emptyList(), { post ->
-            handleEditPost(post)
-        }, {
-            updateDeleteButtonVisibility()
-        })
+        adapter = MyPostsAdapter(
+            emptyList(),
+            onEditClick = { post -> handleEditPost(post) },
+            onSaleClick = { post -> handleSaleClick(post) },
+            onInquiryClick = { post, senderUid, senderName -> handleInquiryClick(post, senderUid, senderName) },
+            onSelectionChanged = { updateDeleteButtonVisibility() },
+            dbHelper = rideDb
+        )
         binding.rvMyPosts.layoutManager = LinearLayoutManager(this)
         binding.rvMyPosts.adapter = adapter
+    }
+
+    private fun handleSaleClick(post: PostItem) {
+        when (post) {
+            is PostItem.Marketplace -> {
+                userDb.setMarketplaceNotification(post.item.id, false)
+                startActivity(Intent(this, SalesActivity::class.java))
+            }
+            is PostItem.RidePost -> {
+                rideDb.setRideNotification(post.ride.id, false)
+                val intent = Intent(this, RideRequestsActivity::class.java)
+                intent.putExtra("RIDE_ID", post.ride.id)
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun handleInquiryClick(post: PostItem, senderUid: String, senderName: String) {
+        if (post is PostItem.Marketplace) {
+            val intent = Intent(this, ChatActivity::class.java).apply {
+                putExtra("RECEIVER_UID", senderUid)
+                putExtra("RECEIVER_NAME", senderName)
+                putExtra("ITEM_ID", post.item.id)
+            }
+            startActivity(intent)
+        }
     }
 
     private fun loadData() {
@@ -85,7 +118,6 @@ class MyPostsActivity : AppCompatActivity() {
         combinedItems.addAll(marketplaceItems.map { PostItem.Marketplace(it) })
         combinedItems.addAll(rides.map { PostItem.RidePost(it) })
         
-        // Sort by some criteria if needed, e.g., created_at. For now, just add them.
         adapter.updateItems(combinedItems)
 
         val marketplaceCount = marketplaceItems.size

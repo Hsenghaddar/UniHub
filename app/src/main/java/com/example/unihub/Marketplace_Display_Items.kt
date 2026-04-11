@@ -3,7 +3,7 @@ package com.example.unihub
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import com.example.unihub.databinding.ActivityMarketplaceDisplayItemsBinding
 
 class Marketplace_Display_Items : AppCompatActivity() {
@@ -36,7 +36,8 @@ class Marketplace_Display_Items : AppCompatActivity() {
             intent.putExtra("ITEM_DATA", clickedItem)
             startActivity(intent)
         }
-        binding.rvMarketplaceItems.layoutManager = LinearLayoutManager(this)
+        // Grid View with 2 columns like Facebook Marketplace
+        binding.rvMarketplaceItems.layoutManager = GridLayoutManager(this, 2)
         binding.rvMarketplaceItems.adapter = adapter
     }
 }

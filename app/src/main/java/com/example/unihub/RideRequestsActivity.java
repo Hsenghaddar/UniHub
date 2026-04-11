@@ -1,5 +1,6 @@
 package com.example.unihub;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -12,6 +13,7 @@ public class RideRequestsActivity extends AppCompatActivity {
 
     private ActivityRideRequestsBinding binding;
     private DatabaseHelper dbHelper;
+    private UserDatabaseHelper userDbHelper;
     private RideRequestsAdapter adapter;
     private int rideId;
 
@@ -22,7 +24,15 @@ public class RideRequestsActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         dbHelper = new DatabaseHelper(this);
+        userDbHelper = new UserDatabaseHelper(this);
         rideId = getIntent().getIntExtra("RIDE_ID", -1);
+
+        setSupportActionBar(binding.toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Ride Requests");
+        }
+        binding.toolbar.setNavigationOnClickListener(v -> finish());
 
         setupRecyclerView();
         loadRequests();
@@ -39,6 +49,14 @@ public class RideRequestsActivity extends AppCompatActivity {
             @Override
             public void onReject(RideRequest request) {
                 rejectRequest(request);
+            }
+
+            @Override
+            public void onContact(RideRequest request) {
+                Intent intent = new Intent(RideRequestsActivity.this, ChatActivity.class);
+                intent.putExtra("RECEIVER_UID", request.getRequesterUid());
+                intent.putExtra("RECEIVER_NAME", request.getRequesterName());
+                startActivity(intent);
             }
         });
         binding.rvRideRequests.setAdapter(adapter);
@@ -58,16 +76,18 @@ public class RideRequestsActivity extends AppCompatActivity {
 
     private void approveRequest(RideRequest request) {
         Ride ride = dbHelper.getRideById(rideId);
-        if (ride != null && ride.getAvailableSeats() > 0) {
-            if (dbHelper.updateRequestStatus(request.getId(), "approved")) {
-                dbHelper.updateRideSeats(rideId, ride.getAvailableSeats() - 1);
-                Toast.makeText(this, "Request approved", Toast.LENGTH_SHORT).show();
-                loadRequests();
+        if (ride != null) {
+            if (ride.getAvailableSeats() > 0) {
+                if (dbHelper.updateRequestStatus(request.getId(), "approved")) {
+                    dbHelper.updateRideSeats(rideId, ride.getAvailableSeats() - 1);
+                    Toast.makeText(this, "Request approved", Toast.LENGTH_SHORT).show();
+                    loadRequests();
+                } else {
+                    Toast.makeText(this, "Failed to approve request", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                Toast.makeText(this, "Failed to approve request", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "No seats available", Toast.LENGTH_SHORT).show();
             }
-        } else {
-            Toast.makeText(this, "No seats available", Toast.LENGTH_SHORT).show();
         }
     }
 

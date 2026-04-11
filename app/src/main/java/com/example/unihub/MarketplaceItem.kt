@@ -10,5 +10,7 @@ data class MarketplaceItem(
     val price: Double,
     val stock: Int,
     val userUid: String,
-    val creatorName: String? = null
+    val creatorName: String? = null,
+    val imageUri: String? = null,
+    val hasNotification: Boolean = false
 ) : Serializable

@@ -32,6 +32,19 @@
             android:textColor="@color/black"
             android:textSize="24sp"
             android:textStyle="bold" />
+
+        <!-- Sales Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSalesPannel"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sales"
+            android:textAllCaps="false"
+            android:textColor="@color/primary"
+            android:textStyle="bold"
+            app:icon="@drawable/ic_sales_history"
+            app:iconTint="@color/primary" />
     </LinearLayout>
 
     <LinearLayout

@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.unihub.databinding.ActivityHomeBinding
 import com.google.firebase.auth.FirebaseAuth
 import android.content.Intent
+import android.net.Uri
 
 class HomeActivity : AppCompatActivity() {
 
@@ -48,6 +49,17 @@ class HomeActivity : AppCompatActivity() {
 
         binding.tvGreeting.text = "Hello, $firstName"
         binding.tvUniversity.text = universityName
+
+        // Load profile picture
+        if (localUser.imageUri != null) {
+            try {
+                binding.ivProfileImage.setImageURI(Uri.parse(localUser.imageUri))
+            } catch (e: Exception) {
+                binding.ivProfileImage.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
+        } else {
+            binding.ivProfileImage.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
     }
 
     private fun setupClicks() {
@@ -61,6 +73,10 @@ class HomeActivity : AppCompatActivity() {
 
         binding.cardMyPosts.setOnClickListener {
             startActivity(Intent(this, MyPostsActivity::class.java))
+        }
+
+        binding.cardChats.setOnClickListener {
+            startActivity(Intent(this, ContactsActivity::class.java))
         }
 
         binding.cardProfile.setOnClickListener {

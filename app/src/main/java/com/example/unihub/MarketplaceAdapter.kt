@@ -1,5 +1,6 @@
 package com.example.unihub
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -26,8 +27,18 @@ class MarketplaceAdapter(
         val item = items[position]
         holder.binding.apply {
             tvItemTitle.text = item.title
-            tvItemDescription.text = item.description
-            tvCreatorName.text = "Added by: ${item.creatorName ?: "Unknown"}"
+            tvItemPrice.text = "$${String.format("%.2f", item.price)}"
+            tvItemCategory.text = item.category
+            
+            if (item.imageUri != null) {
+                try {
+                    ivItemImage.setImageURI(Uri.parse(item.imageUri))
+                } catch (e: Exception) {
+                    ivItemImage.setImageResource(android.R.drawable.ic_menu_gallery)
+                }
+            } else {
+                ivItemImage.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
             
             root.setOnClickListener {
                 onItemClick(item)

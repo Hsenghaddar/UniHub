@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -8,6 +12,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.UniHub">
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.example.unihub.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <activity
             android:name=".ItemDetailActivity"
             android:exported="false" />
@@ -25,6 +40,10 @@
         <activity android:name=".RidesActivity" />
         <activity android:name=".AddRideActivity" />
         <activity android:name=".RideDetailsActivity" />
+        <activity android:name=".RideRequestsActivity" />
+        <activity android:name=".ChatActivity" />
+        <activity android:name=".SalesActivity" />
+        <activity android:name=".ContactsActivity" />
         <activity
             android:name=".SplashActivity"
             android:exported="true">

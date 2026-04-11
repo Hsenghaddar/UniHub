@@ -16,10 +16,15 @@ public class Ride implements Serializable {
     private String note;
     private String status; // "active", "full", "completed"
     private int universityId;
+    private boolean hasNotification;
 
     public Ride() {}
 
     public Ride(int id, String userUid, String driverName, String type, String fromLocation, String toLocation, String date, String time, int totalSeats, int availableSeats, String note, String status, int universityId) {
+        this(id, userUid, driverName, type, fromLocation, toLocation, date, time, totalSeats, availableSeats, note, status, universityId, false);
+    }
+
+    public Ride(int id, String userUid, String driverName, String type, String fromLocation, String toLocation, String date, String time, int totalSeats, int availableSeats, String note, String status, int universityId, boolean hasNotification) {
         this.id = id;
         this.userUid = userUid;
         this.driverName = driverName;
@@ -33,6 +38,7 @@ public class Ride implements Serializable {
         this.note = note;
         this.status = status;
         this.universityId = universityId;
+        this.hasNotification = hasNotification;
     }
 
     // Getters and Setters
@@ -74,4 +80,7 @@ public class Ride implements Serializable {
 
     public int getUniversityId() { return universityId; }
     public void setUniversityId(int universityId) { this.universityId = universityId; }
+
+    public boolean isHasNotification() { return hasNotification; }
+    public void setHasNotification(boolean hasNotification) { this.hasNotification = hasNotification; }
 }

@@ -1,6 +1,9 @@
 package com.example.unihub
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -28,14 +31,18 @@ class ItemDetailActivity : AppCompatActivity() {
             return
         }
 
-        displayItemDetails()
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.toolbar.setNavigationOnClickListener { finish() }
 
-        binding.btnBack.setOnClickListener {
-            finish()
-        }
+        displayItemDetails()
 
         binding.btnBuy.setOnClickListener {
             buyItem()
+        }
+
+        binding.btnMessageSeller.setOnClickListener {
+            messageSeller()
         }
     }
 
@@ -48,16 +55,55 @@ class ItemDetailActivity : AppCompatActivity() {
             binding.tvDetailDescription.text = it.description
             binding.tvDetailCreator.text = "Added by: ${it.creatorName ?: "Unknown"}"
             
+            if (it.imageUri != null) {
+                try {
+                    binding.ivItemImage.setImageURI(Uri.parse(it.imageUri))
+                } catch (e: Exception) {
+                    binding.ivItemImage.setImageResource(android.R.drawable.ic_menu_gallery)
+                }
+            } else {
+                binding.ivItemImage.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
+
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (it.userUid == currentUser?.uid) {
+                binding.btnMessageSeller.visibility = View.GONE
+                binding.btnBuy.visibility = View.GONE
+                binding.layoutQuantity.visibility = View.GONE
+                
+                // If the owner is viewing their own item, clear the notification
+                if (it.hasNotification) {
+                    db.setMarketplaceNotification(it.id, false)
+                }
+            }
+
             if (it.stock <= 0) {
                 binding.btnBuy.isEnabled = false
                 binding.btnBuy.text = "Out of Stock"
                 binding.etQuantity.isEnabled = false
             } else {
                 binding.btnBuy.isEnabled = true
-                binding.btnBuy.text = "Buy Item"
+                binding.btnBuy.text = "Buy Now"
                 binding.etQuantity.isEnabled = true
             }
         }
+    }
+
+    private fun messageSeller() {
+        val currentItem = item ?: return
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        
+        if (currentUser == null) {
+            Toast.makeText(this, "Please log in to message the seller", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val intent = Intent(this, ChatActivity::class.java).apply {
+            putExtra("RECEIVER_UID", currentItem.userUid)
+            putExtra("RECEIVER_NAME", currentItem.creatorName ?: "Seller")
+            putExtra("ITEM_ID", currentItem.id) 
+        }
+        startActivity(intent)
     }
 
     private fun buyItem() {
@@ -81,12 +127,15 @@ class ItemDetailActivity : AppCompatActivity() {
             return
         }
 
-
         val buyerName = db.getUserByFirebaseUid(firebaseUser.uid)?.fullName ?: "A buyer"
         val newStock = currentItem.stock - quantity
-        val success = db.updateMarketplaceStock(currentItem.id, newStock)
+        val totalPrice = currentItem.price * quantity
         
-        if (success) {
+        // Record the sale in the sales table AND update stock (which sets notification)
+        val saleRecorded = db.recordSale(currentItem.id, firebaseUser.uid, quantity, totalPrice)
+        val stockUpdated = db.updateMarketplaceStock(currentItem.id, newStock)
+        
+        if (saleRecorded && stockUpdated) {
             showSuccessDialog(buyerName)
             item = currentItem.copy(stock = newStock)
             displayItemDetails()
@@ -98,8 +147,8 @@ class ItemDetailActivity : AppCompatActivity() {
     private fun showSuccessDialog(buyerName: String) {
         AlertDialog.Builder(this)
             .setTitle("Purchase Successful!")
-            .setMessage("The buyer, $buyerName, will be in contact with you soon.")
-            .setIcon(android.R.drawable.ic_menu_myplaces) // Using a built-in icon that looks somewhat like a bill/place
+            .setMessage("The seller has been notified. You can also message them directly.")
+            .setIcon(android.R.drawable.ic_dialog_info)
             .setPositiveButton("OK", null)
             .show()
     }

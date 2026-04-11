@@ -1,5 +1,6 @@
 package com.example.unihub;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ public class RideRequestsAdapter extends RecyclerView.Adapter<RideRequestsAdapte
     public interface OnRequestActionListener {
         void onApprove(RideRequest request);
         void onReject(RideRequest request);
+        void onContact(RideRequest request);
     }
 
     public RideRequestsAdapter(List<RideRequest> requests, OnRequestActionListener listener) {
@@ -35,16 +37,35 @@ public class RideRequestsAdapter extends RecyclerView.Adapter<RideRequestsAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         RideRequest request = requests.get(position);
         holder.binding.tvRequesterName.setText(request.getRequesterName());
-        holder.binding.tvRequestStatus.setText("Status: " + request.getStatus());
-
-        if (request.getStatus().equalsIgnoreCase("pending")) {
-            holder.binding.layoutActions.setVisibility(View.VISIBLE);
+        
+        String status = request.getStatus();
+        holder.binding.tvRequestStatus.setText("Status: " + status);
+        
+        if (status.equalsIgnoreCase("approved")) {
+            holder.binding.tvRequestStatus.setTextColor(Color.parseColor("#4CAF50")); // Green
+            holder.binding.btnApprove.setVisibility(View.GONE);
+            holder.binding.btnReject.setVisibility(View.GONE);
+        } else if (status.equalsIgnoreCase("rejected")) {
+            holder.binding.tvRequestStatus.setTextColor(Color.parseColor("#F44336")); // Red
+            holder.binding.btnApprove.setVisibility(View.GONE);
+            holder.binding.btnReject.setVisibility(View.GONE);
         } else {
-            holder.binding.layoutActions.setVisibility(View.GONE);
+            holder.binding.tvRequestStatus.setTextColor(Color.parseColor("#757575")); // Gray
+            holder.binding.btnApprove.setVisibility(View.VISIBLE);
+            holder.binding.btnReject.setVisibility(View.VISIBLE);
         }
 
-        holder.binding.btnApprove.setOnClickListener(v -> listener.onApprove(request));
-        holder.binding.btnReject.setOnClickListener(v -> listener.onReject(request));
+        holder.binding.btnApprove.setOnClickListener(v -> {
+            if (listener != null) listener.onApprove(request);
+        });
+        
+        holder.binding.btnReject.setOnClickListener(v -> {
+            if (listener != null) listener.onReject(request);
+        });
+
+        holder.binding.btnContact.setOnClickListener(v -> {
+            if (listener != null) listener.onContact(request);
+        });
     }
 
     @Override
