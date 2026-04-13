@@ -5,6 +5,10 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
+/**
+ * UserDatabaseHelper manages the local SQLite database for the UniHub application.
+ * It handles tables for users, universities, marketplace items, and sales.
+ */
 class UserDatabaseHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
@@ -12,11 +16,13 @@ class UserDatabaseHelper(context: Context) :
         private const val DATABASE_NAME = "unihub.db"
         private const val DATABASE_VERSION = 6
 
+        // Table Names
         private const val TABLE_USERS = "users"
         private const val TABLE_UNIVERSITIES = "universities"
         private const val TABLE_MARKETPLACE = "marketplace_items"
         private const val TABLE_SALES = "sales"
 
+        // Common Column Names
         private const val COL_ID = "id"
         private const val COL_FIREBASE_UID = "firebase_uid"
         private const val COL_FULL_NAME = "full_name"
@@ -25,7 +31,7 @@ class UserDatabaseHelper(context: Context) :
         private const val COL_UNIVERSITY_NAME = "university_name"
         private const val COL_USER_IMAGE_URI = "user_image_uri"
 
-        // Marketplace columns
+        // Marketplace specific columns
         private const val COL_ITEM_TITLE = "title"
         private const val COL_ITEM_DESCRIPTION = "description"
         private const val COL_ITEM_CATEGORY = "category"
@@ -35,7 +41,7 @@ class UserDatabaseHelper(context: Context) :
         private const val COL_ITEM_IMAGE_URI = "image_uri"
         private const val COL_HAS_NOTIFICATION = "has_notification"
 
-        // Sales columns
+        // Sales specific columns
         private const val COL_SALE_ITEM_ID = "item_id"
         private const val COL_SALE_BUYER_UID = "buyer_uid"
         private const val COL_SALE_QUANTITY = "quantity"
@@ -43,6 +49,10 @@ class UserDatabaseHelper(context: Context) :
         private const val COL_SALE_TIMESTAMP = "timestamp"
     }
 
+    /**
+     * Called when the database is created for the first time.
+     * Defines the schema for all tables and seeds the universities table.
+     */
     override fun onCreate(db: SQLiteDatabase) {
         val createUniversitiesTable = """
             CREATE TABLE $TABLE_UNIVERSITIES (
@@ -100,6 +110,9 @@ class UserDatabaseHelper(context: Context) :
         seedUniversities(db)
     }
 
+    /**
+     * Handles database schema upgrades between versions.
+     */
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 3) {
             db.execSQL("ALTER TABLE $TABLE_MARKETPLACE ADD COLUMN $COL_ITEM_IMAGE_URI TEXT")
@@ -126,6 +139,9 @@ class UserDatabaseHelper(context: Context) :
         }
     }
 
+    /**
+     * Seeds the universities table with a predefined list of Lebanese universities.
+     */
     private fun seedUniversities(db: SQLiteDatabase) {
         val universities = listOf(
             "AUB", "LAU", "UOB", "BAU", "LU", "NDU", "USEK", "USJ", "RHU", "UA", "HU", "IUL", "AOU", "AUL", "JU", "MU", "OU", "MEU", "LIU", "MUBS", "PU", "TUT", "CU", "GU", "LCU", "MUT"
@@ -136,6 +152,9 @@ class UserDatabaseHelper(context: Context) :
         }
     }
 
+    /**
+     * Returns a list of all university names.
+     */
     fun getAllUniversities(): List<String> {
         val list = mutableListOf<String>()
         val db = readableDatabase
@@ -147,6 +166,9 @@ class UserDatabaseHelper(context: Context) :
         return list
     }
 
+    /**
+     * Retrieves the database ID of a university by its name.
+     */
     fun getUniversityIdByName(name: String): Int {
         val db = readableDatabase
         val cursor = db.rawQuery("SELECT $COL_ID FROM $TABLE_UNIVERSITIES WHERE $COL_UNIVERSITY_NAME = ?", arrayOf(name))
@@ -156,6 +178,9 @@ class UserDatabaseHelper(context: Context) :
         return id
     }
 
+    /**
+     * Retrieves the university name by its database ID.
+     */
     fun getUniversityNameById(universityId: Int): String {
         val db = readableDatabase
         val cursor = db.rawQuery("SELECT $COL_UNIVERSITY_NAME FROM $TABLE_UNIVERSITIES WHERE $COL_ID = ?", arrayOf(universityId.toString()))
@@ -165,6 +190,9 @@ class UserDatabaseHelper(context: Context) :
         return name
     }
 
+    /**
+     * Inserts a new user record into the database.
+     */
     fun insertUser(firebaseUid: String, fullName: String, email: String, universityId: Int): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -176,6 +204,9 @@ class UserDatabaseHelper(context: Context) :
         return db.insert(TABLE_USERS, null, values) != -1L
     }
 
+    /**
+     * Fetches a local user object by their Firebase UID.
+     */
     fun getUserByFirebaseUid(firebaseUid: String): LocalUser? {
         val db = readableDatabase
         val cursor = db.rawQuery("SELECT $COL_FIREBASE_UID, $COL_FULL_NAME, $COL_EMAIL, $COL_UNIVERSITY_ID, $COL_USER_IMAGE_URI FROM $TABLE_USERS WHERE $COL_FIREBASE_UID = ?", arrayOf(firebaseUid))
@@ -193,6 +224,9 @@ class UserDatabaseHelper(context: Context) :
         return user
     }
 
+    /**
+     * Updates user profile information.
+     */
     fun updateUser(firebaseUid: String, fullName: String, universityId: Int): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -202,6 +236,9 @@ class UserDatabaseHelper(context: Context) :
         return db.update(TABLE_USERS, values, "$COL_FIREBASE_UID = ?", arrayOf(firebaseUid)) > 0
     }
 
+    /**
+     * Updates the local path for the user's profile image.
+     */
     fun updateUserImage(firebaseUid: String, imageUri: String): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -210,6 +247,9 @@ class UserDatabaseHelper(context: Context) :
         return db.update(TABLE_USERS, values, "$COL_FIREBASE_UID = ?", arrayOf(firebaseUid)) > 0
     }
 
+    /**
+     * Counts how many items a specific user has posted in the marketplace.
+     */
     fun getMarketplaceCountForUser(firebaseUid: String): Int {
         val db = readableDatabase
         val cursor = db.rawQuery("SELECT COUNT(*) FROM $TABLE_MARKETPLACE WHERE $COL_ITEM_USER_UID = ?", arrayOf(firebaseUid))
@@ -219,6 +259,9 @@ class UserDatabaseHelper(context: Context) :
         return count
     }
 
+    /**
+     * Updates the stock level of a marketplace item.
+     */
     fun updateMarketplaceStock(itemId: Int, newStock: Int): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply { 
@@ -228,6 +271,9 @@ class UserDatabaseHelper(context: Context) :
         return db.update(TABLE_MARKETPLACE, values, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
     }
 
+    /**
+     * Records a new sale in the sales table.
+     */
     fun recordSale(itemId: Int, buyerUid: String, quantity: Int, totalPrice: Double): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -243,6 +289,9 @@ class UserDatabaseHelper(context: Context) :
         return result != -1L
     }
 
+    /**
+     * Retrieves all sales records for items posted by a specific user.
+     */
     fun getSalesForUser(userUid: String): List<Sale> {
         val list = mutableListOf<Sale>()
         val db = readableDatabase
@@ -273,12 +322,18 @@ class UserDatabaseHelper(context: Context) :
         return list
     }
 
+    /**
+     * Updates the notification status for a marketplace item.
+     */
     fun setMarketplaceNotification(itemId: Int, hasNotification: Boolean): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply { put(COL_HAS_NOTIFICATION, if (hasNotification) 1 else 0) }
         return db.update(TABLE_MARKETPLACE, values, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
     }
 
+    /**
+     * Inserts a new marketplace item into the database.
+     */
     fun insertMarketplaceItem(title: String, description: String, category: String, price: Double, stock: Int, userUid: String, imageUri: String? = null): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -293,6 +348,9 @@ class UserDatabaseHelper(context: Context) :
         return db.insert(TABLE_MARKETPLACE, null, values) != -1L
     }
 
+    /**
+     * Retrieves all marketplace items available in the database.
+     */
     fun getAllMarketplaceItems(): List<MarketplaceItem> {
         val list = mutableListOf<MarketplaceItem>()
         val db = readableDatabase
@@ -307,6 +365,9 @@ class UserDatabaseHelper(context: Context) :
         return list
     }
 
+    /**
+     * Retrieves marketplace items posted by a specific user.
+     */
     fun getMarketplaceItemsByUser(userUid: String): List<MarketplaceItem> {
         val list = mutableListOf<MarketplaceItem>()
         val db = readableDatabase
@@ -321,6 +382,9 @@ class UserDatabaseHelper(context: Context) :
         return list
     }
 
+    /**
+     * Fetches a single marketplace item by its database ID.
+     */
     fun getMarketplaceItemById(itemId: Int): MarketplaceItem? {
         val db = readableDatabase
         val query = "SELECT m.*, u.$COL_FULL_NAME as creator_name FROM $TABLE_MARKETPLACE m LEFT JOIN $TABLE_USERS u ON m.$COL_ITEM_USER_UID = u.$COL_FIREBASE_UID WHERE m.$COL_ID = ?"
@@ -333,6 +397,9 @@ class UserDatabaseHelper(context: Context) :
         return item
     }
 
+    /**
+     * Helper method to convert a database cursor into a MarketplaceItem object.
+     */
     private fun cursorToMarketplaceItem(cursor: android.database.Cursor): MarketplaceItem {
         return MarketplaceItem(
             id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_ID)),
@@ -348,6 +415,9 @@ class UserDatabaseHelper(context: Context) :
         )
     }
 
+    /**
+     * Updates an existing marketplace item's details.
+     */
     fun updateMarketplaceItem(itemId: Int, title: String, description: String, category: String, price: Double, stock: Int): Boolean {
         val db = writableDatabase
         val values = ContentValues().apply {
@@ -360,12 +430,18 @@ class UserDatabaseHelper(context: Context) :
         return db.update(TABLE_MARKETPLACE, values, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
     }
 
+    /**
+     * Deletes a marketplace item from the database.
+     */
     fun deleteMarketplaceItem(itemId: Int): Boolean {
         val db = writableDatabase
         return db.delete(TABLE_MARKETPLACE, "$COL_ID = ?", arrayOf(itemId.toString())) > 0
     }
 }
 
+/**
+ * Data class representing a Sale record.
+ */
 data class Sale(
     val id: Int,
     val itemId: Int,

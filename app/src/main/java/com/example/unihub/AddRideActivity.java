@@ -13,6 +13,13 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
+/**
+ * Activity for creating or editing a ride offer or request.
+ *
+ * This class handles the input form for ride details, including location, date, time, and seat availability.
+ * It uses DatePickerDialog and TimePickerDialog for user-friendly date and time selection.
+ * It supports both "Offer" (driver providing a ride) and "Request" (passenger looking for a ride) types.
+ */
 public class AddRideActivity extends AppCompatActivity {
 
     private ActivityAddRideBinding binding;
@@ -39,6 +46,7 @@ public class AddRideActivity extends AppCompatActivity {
         userDbHelper = new UserDatabaseHelper(this);
         sessionManager = new SessionManager(this);
 
+        // Retrieve current user details from local database using Firebase UID from session
         currentUserUid = sessionManager.getSavedFirebaseUid();
         LocalUser user = userDbHelper.getUserByFirebaseUid(currentUserUid);
         if (user != null) {
@@ -46,6 +54,7 @@ public class AddRideActivity extends AppCompatActivity {
             userUniversityId = user.getUniversityId();
         }
 
+        // Check if we are in edit mode based on Intent extras
         isEditMode = getIntent().getBooleanExtra("EDIT_MODE", false);
         rideIdToEdit = getIntent().getIntExtra("RIDE_ID", -1);
 
@@ -59,6 +68,9 @@ public class AddRideActivity extends AppCompatActivity {
         binding.btnSubmit.setOnClickListener(v -> submitRide());
     }
 
+    /**
+     * Populates the form with existing ride data when editing.
+     */
     private void loadRideForEditing() {
         existingRide = dbHelper.getRideById(rideIdToEdit);
         if (existingRide != null) {
@@ -77,6 +89,9 @@ public class AddRideActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Configures the ride type dropdown (Offer vs Request).
+     */
     private void setupTypeDropdown() {
         String[] types = getResources().getStringArray(R.array.ride_types);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, types);
@@ -88,6 +103,11 @@ public class AddRideActivity extends AppCompatActivity {
         });
     }
 
+    /**
+     * Updates UI labels based on whether the user is offering or requesting a ride.
+     *
+     * @param type The selected ride type ("Offer" or "Request").
+     */
     private void updateLabelsByType(String type) {
         if (type.equalsIgnoreCase("Request")) {
             binding.tvSeatsLabel.setText("Requested Seats");
@@ -98,6 +118,9 @@ public class AddRideActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Initializes the date and time pickers.
+     */
     private void setupDateTimePickers() {
         binding.etDate.setOnClickListener(v -> {
             DatePickerDialog datePickerDialog = new DatePickerDialog(this,
@@ -111,6 +134,7 @@ public class AddRideActivity extends AppCompatActivity {
                     calendar.get(Calendar.MONTH),
                     calendar.get(Calendar.DAY_OF_MONTH));
 
+            // Prevent picking past dates
             datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
             datePickerDialog.show();
         });
@@ -129,18 +153,23 @@ public class AddRideActivity extends AppCompatActivity {
         });
     }
 
+    /** Updates the date EditText with formatted text from calendar. */
     private void updateDateLabel() {
         String myFormat = "yyyy-MM-dd";
         SimpleDateFormat sdf = new SimpleDateFormat(myFormat, Locale.US);
         binding.etDate.setText(sdf.format(calendar.getTime()));
     }
 
+    /** Updates the time EditText with formatted text from calendar. */
     private void updateTimeLabel() {
         String myFormat = "hh:mm a";
         SimpleDateFormat sdf = new SimpleDateFormat(myFormat, Locale.US);
         binding.etTime.setText(sdf.format(calendar.getTime()));
     }
 
+    /**
+     * Validates input and saves the ride to the database.
+     */
     private void submitRide() {
         String type = binding.autoCompleteType.getText().toString();
         String from = binding.etFrom.getText().toString().trim();

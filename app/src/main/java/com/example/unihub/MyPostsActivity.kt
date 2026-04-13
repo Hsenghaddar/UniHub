@@ -13,6 +13,16 @@ import com.example.unihub.databinding.DialogEditItemBinding
 import com.google.firebase.auth.FirebaseAuth
 import android.content.Intent
 
+/**
+ * MyPostsActivity allows users to manage their own contributions to UniHub.
+ * 
+ * It displays a unified list of the user's marketplace listings and ride offers/requests.
+ * Features include:
+ * - Viewing post counts and status.
+ * - Editing existing marketplace items (via dialog) or rides (via AddRideActivity).
+ * - Multi-selection mode for bulk deletion of posts.
+ * - Navigating to sales history or ride request management.
+ */
 class MyPostsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMyPostsBinding
@@ -30,6 +40,7 @@ class MyPostsActivity : AppCompatActivity() {
 
         setupRecyclerView()
 
+        // Handle back button behavior based on selection mode
         binding.btnBack.setOnClickListener {
             if (adapter.isSelectionMode()) {
                 adapter.exitSelectionMode()
@@ -56,6 +67,7 @@ class MyPostsActivity : AppCompatActivity() {
 
         loadData()
 
+        // Register a back press callback to exit selection mode if active
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (adapter.isSelectionMode()) {
@@ -68,6 +80,10 @@ class MyPostsActivity : AppCompatActivity() {
         })
     }
 
+    /**
+     * Initializes the RecyclerView with a polymorphic adapter.
+     * Configures callbacks for editing, viewing sales/requests, and selection changes.
+     */
     private fun setupRecyclerView() {
         adapter = MyPostsAdapter(
             emptyList(),
@@ -81,6 +97,10 @@ class MyPostsActivity : AppCompatActivity() {
         binding.rvMyPosts.adapter = adapter
     }
 
+    /**
+     * Handles clicks on notifications or "Sale/Request" indicators.
+     * Redirects to SalesActivity for marketplace items or RideRequestsActivity for rides.
+     */
     private fun handleSaleClick(post: PostItem) {
         when (post) {
             is PostItem.Marketplace -> {
@@ -96,6 +116,9 @@ class MyPostsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Opens a chat with a user who made an inquiry about a marketplace item.
+     */
     private fun handleInquiryClick(post: PostItem, senderUid: String, senderName: String) {
         if (post is PostItem.Marketplace) {
             val intent = Intent(this, ChatActivity::class.java).apply {
@@ -107,6 +130,10 @@ class MyPostsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Queries both databases for the current user's posts and updates the UI.
+     * Combines MarketplaceItem and Ride objects into a single list of PostItem.
+     */
     private fun loadData() {
         val firebaseUser = FirebaseAuth.getInstance().currentUser ?: return
         val userUid = firebaseUser.uid
@@ -126,6 +153,7 @@ class MyPostsActivity : AppCompatActivity() {
         binding.tvMarketplaceCount.text = marketplaceCount.toString()
         binding.tvRideCount.text = rideCount.toString()
 
+        // Show hint if no posts exist
         if (marketplaceCount == 0 && rideCount == 0) {
             binding.tvMyPostsHint.visibility = View.VISIBLE
             binding.rvMyPosts.visibility = View.GONE
@@ -135,6 +163,9 @@ class MyPostsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Toggles the visibility of the bulk delete button based on selection mode.
+     */
     private fun updateDeleteButtonVisibility() {
         if (adapter.isSelectionMode()) {
             binding.btnDelete.visibility = View.VISIBLE
@@ -143,6 +174,9 @@ class MyPostsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Deletes all items currently selected in the adapter from their respective databases.
+     */
     private fun deleteSelectedItems() {
         val selectedUniqueIds = adapter.getSelectedUniqueIds()
         if (selectedUniqueIds.isEmpty()) return
@@ -153,6 +187,7 @@ class MyPostsActivity : AppCompatActivity() {
             .setPositiveButton("Delete") { _, _ ->
                 var successCount = 0
                 for (uniqueId in selectedUniqueIds) {
+                    // Extract ID and Type from the unique key (e.g., "M-123" or "R-456")
                     val id = uniqueId.substring(2).toInt()
                     val type = uniqueId.substring(0, 1)
                     
@@ -172,6 +207,10 @@ class MyPostsActivity : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * Triggers the edit flow for a specific post.
+     * Shows a dialog for Marketplace items or starts AddRideActivity for Rides.
+     */
     private fun handleEditPost(post: PostItem) {
         when (post) {
             is PostItem.Marketplace -> showMarketplaceEditDialog(post.item)
@@ -184,6 +223,9 @@ class MyPostsActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Shows a dialog to edit the text-based fields of a Marketplace item.
+     */
     private fun showMarketplaceEditDialog(item: MarketplaceItem) {
         val dialogBinding = DialogEditItemBinding.inflate(LayoutInflater.from(this))
         

@@ -10,6 +10,14 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.unihub.databinding.ActivityItemDetailBinding
 import com.google.firebase.auth.FirebaseAuth
 
+/**
+ * ItemDetailActivity displays the full details of a specific marketplace item.
+ *
+ * It allows potential buyers to view item information, specify a quantity,
+ * and initiate a purchase or contact the seller via chat.
+ * If the current user is the owner, purchase options are hidden, and 
+ * viewing the item clears any pending notifications related to it.
+ */
 class ItemDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityItemDetailBinding
@@ -23,6 +31,7 @@ class ItemDetailActivity : AppCompatActivity() {
 
         db = UserDatabaseHelper(this)
         
+        // Retrieve the marketplace item passed via Intent
         item = intent.getSerializableExtra("ITEM_DATA") as? MarketplaceItem
 
         if (item == null) {
@@ -31,6 +40,7 @@ class ItemDetailActivity : AppCompatActivity() {
             return
         }
 
+        // Setup Toolbar with back navigation
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
@@ -46,6 +56,11 @@ class ItemDetailActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Populates the UI with data from the marketplace item.
+     * Handles visibility of purchase/message buttons based on ownership 
+     * and stock availability.
+     */
     private fun displayItemDetails() {
         item?.let {
             binding.tvDetailTitle.text = it.title
@@ -55,6 +70,7 @@ class ItemDetailActivity : AppCompatActivity() {
             binding.tvDetailDescription.text = it.description
             binding.tvDetailCreator.text = "Added by: ${it.creatorName ?: "Unknown"}"
             
+            // Load item image using utility class or fallback to placeholder
             if (it.imageUri != null) {
                 try {
                     ImageUtils.loadImage(this, Uri.parse(it.imageUri), binding.ivItemImage)
@@ -66,17 +82,19 @@ class ItemDetailActivity : AppCompatActivity() {
             }
 
             val currentUser = FirebaseAuth.getInstance().currentUser
+            // Owner-specific UI logic: Hide purchase actions
             if (it.userUid == currentUser?.uid) {
                 binding.btnMessageSeller.visibility = View.GONE
                 binding.btnBuy.visibility = View.GONE
                 binding.layoutQuantity.visibility = View.GONE
                 
-                // If the owner is viewing their own item, clear the notification
+                // If the owner is viewing their own item, clear the "new sale" notification
                 if (it.hasNotification) {
                     db.setMarketplaceNotification(it.id, false)
                 }
             }
 
+            // Stock-specific UI logic: Disable "Buy" if out of stock
             if (it.stock <= 0) {
                 binding.btnBuy.isEnabled = false
                 binding.btnBuy.text = "Out of Stock"
@@ -89,6 +107,10 @@ class ItemDetailActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Navigates to the ChatActivity to message the seller.
+     * Passes the seller's UID and the current item ID for context.
+     */
     private fun messageSeller() {
         val currentItem = item ?: return
         val currentUser = FirebaseAuth.getInstance().currentUser
@@ -106,6 +128,11 @@ class ItemDetailActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    /**
+     * Validates and processes the purchase of the item.
+     * Updates the local database stock, records the sale, and 
+     * triggers a notification for the seller.
+     */
     private fun buyItem() {
         val currentItem = item ?: return
         val quantityStr = binding.etQuantity.text.toString()
@@ -117,6 +144,7 @@ class ItemDetailActivity : AppCompatActivity() {
             return
         }
 
+        // Validation: Quantity must be positive and within stock limits
         if (quantity <= 0) {
             Toast.makeText(this, "Please enter a valid quantity", Toast.LENGTH_SHORT).show()
             return
@@ -137,6 +165,7 @@ class ItemDetailActivity : AppCompatActivity() {
         
         if (saleRecorded && stockUpdated) {
             showSuccessDialog(buyerName)
+            // Update local state and refresh UI
             item = currentItem.copy(stock = newStock)
             displayItemDetails()
         } else {
@@ -144,6 +173,9 @@ class ItemDetailActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Displays a confirmation dialog upon successful purchase.
+     */
     private fun showSuccessDialog(buyerName: String) {
         AlertDialog.Builder(this)
             .setTitle("Purchase Successful!")

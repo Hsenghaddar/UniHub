@@ -10,17 +10,35 @@ import com.example.unihub.databinding.ItemRideRequestBinding;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Adapter for displaying a list of ride requests in a RecyclerView.
+ *
+ * This adapter handles the visualization of individual ride requests, showing the requester's name,
+ * the current status (pending, approved, or rejected), and providing action buttons for the driver.
+ */
 public class RideRequestsAdapter extends RecyclerView.Adapter<RideRequestsAdapter.ViewHolder> {
 
     private List<RideRequest> requests;
     private OnRequestActionListener listener;
 
+    /**
+     * Interface for handling actions on a ride request.
+     */
     public interface OnRequestActionListener {
+        /** Called when the driver approves a request. */
         void onApprove(RideRequest request);
+        /** Called when the driver rejects a request. */
         void onReject(RideRequest request);
+        /** Called when the driver wants to contact the requester via chat. */
         void onContact(RideRequest request);
     }
 
+    /**
+     * Constructor for RideRequestsAdapter.
+     *
+     * @param requests List of RideRequest objects to display.
+     * @param listener Listener for handle user actions.
+     */
     public RideRequestsAdapter(List<RideRequest> requests, OnRequestActionListener listener) {
         this.requests = requests != null ? requests : new ArrayList<>();
         this.listener = listener;
@@ -41,6 +59,7 @@ public class RideRequestsAdapter extends RecyclerView.Adapter<RideRequestsAdapte
         String status = request.getStatus();
         holder.binding.tvRequestStatus.setText("Status: " + status);
         
+        // Change text color and visibility of buttons based on the request status
         if (status.equalsIgnoreCase("approved")) {
             holder.binding.tvRequestStatus.setTextColor(Color.parseColor("#4CAF50")); // Green
             holder.binding.btnApprove.setVisibility(View.GONE);
@@ -55,6 +74,7 @@ public class RideRequestsAdapter extends RecyclerView.Adapter<RideRequestsAdapte
             holder.binding.btnReject.setVisibility(View.VISIBLE);
         }
 
+        // Set up click listeners for the action buttons
         holder.binding.btnApprove.setOnClickListener(v -> {
             if (listener != null) listener.onApprove(request);
         });
@@ -73,11 +93,19 @@ public class RideRequestsAdapter extends RecyclerView.Adapter<RideRequestsAdapte
         return requests.size();
     }
 
+    /**
+     * Updates the data set and refreshes the RecyclerView.
+     *
+     * @param newList The new list of ride requests.
+     */
     public void updateList(List<RideRequest> newList) {
         this.requests = newList != null ? newList : new ArrayList<>();
         notifyDataSetChanged();
     }
 
+    /**
+     * ViewHolder class for ride request items.
+     */
     public static class ViewHolder extends RecyclerView.ViewHolder {
         ItemRideRequestBinding binding;
 

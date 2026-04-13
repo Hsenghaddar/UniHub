@@ -10,13 +10,22 @@ import com.example.unihub.databinding.ItemMyPostBinding
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+/**
+ * MyPostsAdapter manages the display of the current user's marketplace and ride posts.
+ * 
+ * It supports:
+ * - Polymorphic display of PostItem (Marketplace vs. Ride).
+ * - Multi-selection mode for bulk actions.
+ * - Dynamic notification badges for new sales, requests, or inquiries.
+ * - Nested RecyclerView for showing mini-inquiries (unread messages about an item).
+ */
 class MyPostsAdapter(
     private var items: List<PostItem>,
     private val onEditClick: (PostItem) -> Unit,
     private val onSaleClick: (PostItem) -> Unit,
     private val onInquiryClick: (PostItem, String, String) -> Unit, // post, senderUid, senderName
     private val onSelectionChanged: () -> Unit,
-    private val dbHelper: DatabaseHelper // Added to fetch inquirers
+    private val dbHelper: DatabaseHelper // Used to query for item-specific unread messages
 ) : RecyclerView.Adapter<MyPostsAdapter.MyPostViewHolder>() {
 
     private val selectedItems = mutableSetOf<String>()
@@ -36,6 +45,7 @@ class MyPostsAdapter(
 
     override fun onBindViewHolder(holder: MyPostViewHolder, position: Int) {
         val post = items[position]
+        // Generate a unique identifier to distinguish between Marketplace (M) and Ride (R) items
         val uniqueId = when(post) {
             is PostItem.Marketplace -> "M_${post.item.id}"
             is PostItem.RidePost -> "R_${post.ride.id}"
@@ -45,13 +55,13 @@ class MyPostsAdapter(
             tvPostTitle.text = post.title
             tvPostDescription.text = post.description
 
-            // Notification Badges
+            // Retrieve notification status from the specific post type
             val hasNotification = when(post) {
                 is PostItem.Marketplace -> post.item.hasNotification
                 is PostItem.RidePost -> post.ride.isHasNotification
             }
 
-            // Inquiry logic for Marketplace
+            // Inquiry logic for Marketplace: Show unread messages related to this item
             if (post is PostItem.Marketplace) {
                 val inquirers = getInquirers(post.item.id, post.item.userUid)
                 
@@ -67,8 +77,7 @@ class MyPostsAdapter(
                     rvInquiries.visibility = View.GONE
                 }
 
-                // Show Sale badge if hasNotification is true AND there are sales
-                // (Using hasNotification as a generic flag for sales in this logic)
+                // Show "New Sale" badge if the item has a pending sale notification
                 if (hasNotification) {
                     tvNotificationBadge.visibility = View.VISIBLE
                     tvNotificationBadge.text = "New Sale"
@@ -77,7 +86,7 @@ class MyPostsAdapter(
                     tvNotificationBadge.visibility = View.GONE
                 }
             } else {
-                // Rides logic
+                // Rides logic: Rides don't have nested inquiries, only request notifications
                 tvInquiryBadge.visibility = View.GONE
                 rvInquiries.visibility = View.GONE
                 
@@ -90,6 +99,7 @@ class MyPostsAdapter(
                 }
             }
 
+            // Selection mode UI handling
             cbSelect.visibility = if (isSelectionMode) View.VISIBLE else View.GONE
             cbSelect.isChecked = selectedItems.contains(uniqueId)
 
@@ -105,6 +115,7 @@ class MyPostsAdapter(
                 onSelectionChanged()
             }
 
+            // Enter selection mode on long click
             root.setOnLongClickListener {
                 if (!isSelectionMode) {
                     isSelectionMode = true
@@ -117,10 +128,13 @@ class MyPostsAdapter(
         }
     }
 
+    /**
+     * Queries the database for users who have sent unread messages about a specific item.
+     */
     private fun getInquirers(itemId: Int, ownerUid: String): List<Inquirer> {
         val list = mutableListOf<Inquirer>()
         val db = dbHelper.readableDatabase
-        // Find distinct senders who messaged about this item (where owner is receiver) AND is_read = 0
+        // Query distinct senders with unread messages for this item context
         val query = """
             SELECT DISTINCT sender_uid, sender_name, MAX(timestamp) as last_time 
             FROM messages 
@@ -166,8 +180,14 @@ class MyPostsAdapter(
         onSelectionChanged()
     }
 
+    /**
+     * Represents a user who has inquired about an item.
+     */
     data class Inquirer(val uid: String, val name: String, val lastTime: String)
 
+    /**
+     * A smaller adapter for the nested RecyclerView that lists people who messaged about a post.
+     */
     class MiniInquiryAdapter(
         private val inquirers: List<Inquirer>,
         private val onClick: (String, String) -> Unit

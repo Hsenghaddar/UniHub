@@ -17,6 +17,13 @@ import com.example.unihub.databinding.ActivityChatBinding;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Activity for real-time-like local chat between users.
+ *
+ * This activity facilitates messaging between two users. It supports standard text messages
+ * and specialized marketplace interactions, such as sending item links with custom prices
+ * and handling direct purchases within the chat interface.
+ */
 public class ChatActivity extends AppCompatActivity {
 
     private ActivityChatBinding binding;
@@ -40,24 +47,29 @@ public class ChatActivity extends AppCompatActivity {
         userDbHelper = new UserDatabaseHelper(this);
         sessionManager = new SessionManager(this);
 
+        // Identify current user
         currentUserUid = sessionManager.getSavedFirebaseUid();
         LocalUser user = userDbHelper.getUserByFirebaseUid(currentUserUid);
         if (user != null) {
             currentUserName = user.getFullName();
         }
 
+        // Get recipient info from intent
         receiverUid = getIntent().getStringExtra("RECEIVER_UID");
         receiverName = getIntent().getStringExtra("RECEIVER_NAME");
         itemId = getIntent().getIntExtra("ITEM_ID", -1);
 
         binding.tvHeaderTitle.setText(receiverName != null ? receiverName : "Chat");
         binding.btnBack.setOnClickListener(v -> finish());
+        
+        // Link an item from the marketplace to the chat
         binding.btnSendLink.setOnClickListener(v -> showItemSelectionDialog());
 
         setupItemPreview();
         setupRecyclerView();
         loadMessages();
         
+        // Mark messages as read for this specific conversation context
         if (itemId != -1) {
             dbHelper.markMessagesAsRead(currentUserUid, receiverUid, itemId);
         }
@@ -65,8 +77,9 @@ public class ChatActivity extends AppCompatActivity {
         binding.btnSend.setOnClickListener(v -> sendMessage());
     }
 
-    /* Options menu logic removed in favor of btnSendLink in custom header */
-
+    /**
+     * Shows a dialog allowing the user to select one of their marketplace items to share in the chat.
+     */
     private void showItemSelectionDialog() {
         List<MarketplaceItem> myItems = userDbHelper.getMarketplaceItemsByUser(currentUserUid);
         if (myItems.isEmpty()) {
@@ -89,6 +102,11 @@ public class ChatActivity extends AppCompatActivity {
             .show();
     }
 
+    /**
+     * Displays a dialog to set a custom price for the item being shared in chat.
+     *
+     * @param item The marketplace item to be shared.
+     */
     private void showPriceInputDialog(MarketplaceItem item) {
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
@@ -110,6 +128,9 @@ public class ChatActivity extends AppCompatActivity {
             .show();
     }
 
+    /**
+     * Inserts a purchase inquiry message into the database.
+     */
     private void sendPurchaseInquiry(MarketplaceItem item, double price) {
         String inquiryText = "Proposed Purchase: " + item.getTitle() + " for $" + String.format("%.2f", price);
         if (dbHelper.insertMessage(currentUserUid, currentUserName, receiverUid, inquiryText, item.getId(), 1, price)) {
@@ -117,6 +138,9 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Sets up a small preview bar if the chat was started from a specific marketplace item.
+     */
     private void setupItemPreview() {
         if (itemId == -1) {
             binding.cardItemPreview.setVisibility(View.GONE);
@@ -136,16 +160,25 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Configures the message list RecyclerView.
+     */
     private void setupRecyclerView() {
         adapter = new ChatAdapter(new ArrayList<>(), currentUserUid);
         adapter.setOnPurchaseClickListener(msg -> handlePurchase(msg));
         
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true);
+        layoutManager.setStackFromEnd(true); // Messages start from bottom
         binding.rvMessages.setLayoutManager(layoutManager);
         binding.rvMessages.setAdapter(adapter);
     }
 
+    /**
+     * Processes a purchase when the user clicks the "Purchase" button in a chat message.
+     * Updates stock and records a sale in the database.
+     *
+     * @param msg The message containing the purchase link.
+     */
     private void handlePurchase(Message msg) {
         if (msg.getType() != 1) {
             Toast.makeText(this, "This link has already been used.", Toast.LENGTH_SHORT).show();
@@ -158,22 +191,27 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        // Mark as completed immediately
+        // Mark this message as completed to disable the button
         dbHelper.updateMessageType(msg.getId(), 2);
 
+        // Decrement stock
         int newStock = Math.max(0, item.getStock() - 1);
         userDbHelper.updateMarketplaceStock(item.getId(), newStock);
         
-        // Use the price from the message instead of the original item price
+        // Record the sale transaction
         double finalPrice = msg.getPrice() > 0 ? msg.getPrice() : item.getPrice();
         userDbHelper.recordSale(item.getId(), currentUserUid, 1, finalPrice);
         
+        // Send an automated confirmation message
         dbHelper.insertMessage(currentUserUid, currentUserName, receiverUid, "I have purchased: " + item.getTitle() + " for $" + String.format("%.2f", finalPrice), item.getId(), 2, finalPrice);
         
         Toast.makeText(this, "Purchase successful!", Toast.LENGTH_SHORT).show();
         loadMessages();
     }
 
+    /**
+     * Loads messages from the local database and scrolls to the latest.
+     */
     private void loadMessages() {
         List<Message> messages = dbHelper.getMessages(currentUserUid, receiverUid);
         adapter.updateList(messages);
@@ -182,6 +220,9 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Sends a plain text message.
+     */
     private void sendMessage() {
         String text = binding.etMessage.getText().toString().trim();
         if (TextUtils.isEmpty(text)) return;

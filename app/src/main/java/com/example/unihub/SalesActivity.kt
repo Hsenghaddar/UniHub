@@ -11,6 +11,13 @@ import com.example.unihub.databinding.ItemSaleBinding
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Locale
 
+/**
+ * Activity for viewing a summary of the user's marketplace sales.
+ *
+ * This activity displays total revenue and the number of items sold, along with
+ * a detailed list of individual transactions. It queries the `UserDatabaseHelper`
+ * for sales records associated with the current user's UID.
+ */
 class SalesActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySalesBinding
@@ -21,6 +28,7 @@ class SalesActivity : AppCompatActivity() {
         binding = ActivitySalesBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Setup toolbar with back navigation
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
@@ -29,23 +37,30 @@ class SalesActivity : AppCompatActivity() {
         loadSalesData()
     }
 
+    /**
+     * Fetches sales data from the database, calculates aggregates, and updates the UI.
+     */
     private fun loadSalesData() {
         val currentUserUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val sales = db.getSalesForUser(currentUserUid)
 
-        // Calculate Stats
+        // Calculate aggregate statistics for the dashboard
         val totalRevenue = sales.sumOf { it.totalPrice }
         val itemsSold = sales.sumOf { it.quantity }
 
         binding.tvTotalRevenue.text = String.format(Locale.getDefault(), "$%.2f", totalRevenue)
         binding.tvItemsSold.text = itemsSold.toString()
 
-        // Setup RecyclerView
+        // Setup RecyclerView for individual sale entries
         binding.rvSales.layoutManager = LinearLayoutManager(this)
         binding.rvSales.adapter = SalesAdapter(sales)
     }
 
+    /**
+     * Adapter class for displaying individual sale records.
+     */
     class SalesAdapter(private val sales: List<Sale>) : RecyclerView.Adapter<SalesAdapter.ViewHolder>() {
+
         class ViewHolder(val binding: ItemSaleBinding) : RecyclerView.ViewHolder(binding.root)
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

@@ -9,6 +9,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.unihub.databinding.ActivityRideRequestsBinding;
 import java.util.List;
 
+/**
+ * Activity for managing incoming join requests for a specific ride.
+ *
+ * This activity displays a list of users who have requested to join a ride offered by the current user.
+ * It allows the driver to approve or reject requests and provides navigation to chat with requesters.
+ */
 public class RideRequestsActivity extends AppCompatActivity {
 
     private ActivityRideRequestsBinding binding;
@@ -38,6 +44,9 @@ public class RideRequestsActivity extends AppCompatActivity {
         loadRequests();
     }
 
+    /**
+     * Configures the RecyclerView and its adapter for displaying ride requests.
+     */
     private void setupRecyclerView() {
         binding.rvRideRequests.setLayoutManager(new LinearLayoutManager(this));
         adapter = new RideRequestsAdapter(null, new RideRequestsAdapter.OnRequestActionListener() {
@@ -62,6 +71,9 @@ public class RideRequestsActivity extends AppCompatActivity {
         binding.rvRideRequests.setAdapter(adapter);
     }
 
+    /**
+     * Loads the list of requests for the current ride from the database.
+     */
     private void loadRequests() {
         List<RideRequest> requests = dbHelper.getRequestsForRide(rideId);
         if (requests == null || requests.isEmpty()) {
@@ -74,6 +86,11 @@ public class RideRequestsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Approves a ride request and decrements the available seats for the ride.
+     *
+     * @param request The RideRequest object to be approved.
+     */
     private void approveRequest(RideRequest request) {
         Ride ride = dbHelper.getRideById(rideId);
         if (ride != null) {
@@ -91,6 +108,11 @@ public class RideRequestsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Rejects a ride request.
+     *
+     * @param request The RideRequest object to be rejected.
+     */
     private void rejectRequest(RideRequest request) {
         if (dbHelper.updateRequestStatus(request.getId(), "rejected")) {
             Toast.makeText(this, "Request rejected", Toast.LENGTH_SHORT).show();

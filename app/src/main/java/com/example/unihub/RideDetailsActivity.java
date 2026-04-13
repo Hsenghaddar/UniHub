@@ -8,6 +8,13 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.unihub.databinding.ActivityRideDetailsBinding;
 
+/**
+ * Activity for viewing the full details of a ride offer or request.
+ *
+ * This activity displays comprehensive information about a ride, including locations, timing,
+ * and available seats. It dynamically changes its UI and available actions based on whether
+ * the current user is the owner of the ride or a visitor.
+ */
 public class RideDetailsActivity extends AppCompatActivity {
 
     private ActivityRideDetailsBinding binding;
@@ -28,6 +35,7 @@ public class RideDetailsActivity extends AppCompatActivity {
         sessionManager = new SessionManager(this);
         currentUserUid = sessionManager.getSavedFirebaseUid();
 
+        // Retrieve current user name for ride requests
         UserDatabaseHelper userDbHelper = new UserDatabaseHelper(this);
         LocalUser user = userDbHelper.getUserByFirebaseUid(currentUserUid);
         if (user != null) {
@@ -36,8 +44,10 @@ public class RideDetailsActivity extends AppCompatActivity {
 
         rideId = getIntent().getIntExtra("RIDE_ID", -1);
 
+        // Visitor action: Request a seat
         binding.btnRequestSeat.setOnClickListener(v -> requestSeat());
 
+        // Visitor action: Chat with the driver/requester
         binding.btnMessageDriver.setOnClickListener(v -> {
             if (ride != null) {
                 Intent intent = new Intent(RideDetailsActivity.this, ChatActivity.class);
@@ -47,12 +57,14 @@ public class RideDetailsActivity extends AppCompatActivity {
             }
         });
 
+        // Owner action: View incoming requests
         binding.btnViewRequests.setOnClickListener(v -> {
             Intent intent = new Intent(RideDetailsActivity.this, RideRequestsActivity.class);
             intent.putExtra("RIDE_ID", rideId);
             startActivity(intent);
         });
 
+        // Owner action: Edit ride details
         binding.btnEditRide.setOnClickListener(v -> {
             Intent intent = new Intent(RideDetailsActivity.this, AddRideActivity.class);
             intent.putExtra("EDIT_MODE", true);
@@ -60,6 +72,7 @@ public class RideDetailsActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // Owner action: Delete ride
         binding.btnDeleteRide.setOnClickListener(v -> showDeleteConfirmation());
     }
 
@@ -69,30 +82,41 @@ public class RideDetailsActivity extends AppCompatActivity {
         loadRideDetails();
     }
 
+    /**
+     * Loads ride details from the database and updates the UI components.
+     * Toggles visibility of owner-specific and visitor-specific buttons.
+     */
     private void loadRideDetails() {
         ride = dbHelper.getRideById(rideId);
         if (ride != null) {
             binding.tvDetailDriverName.setText(ride.getDriverName() + " (" + ride.getType() + ")");
             binding.tvDetailFromTo.setText("From: " + ride.getFromLocation() + "\nTo: " + ride.getToLocation());
             binding.tvDetailDateTime.setText("Date: " + ride.getDate() + " | Time: " + ride.getTime());
-            binding.tvDetailSeats.setText(ride.getType().equalsIgnoreCase("Request") ? "Requested Seats: " + ride.getTotalSeats() : "Available Seats: " + ride.getAvailableSeats() + " / " + ride.getTotalSeats());
+            
+            if (ride.getType().equalsIgnoreCase("Request")) {
+                binding.tvDetailSeats.setText("Requested Seats: " + ride.getTotalSeats());
+            } else {
+                binding.tvDetailSeats.setText("Available Seats: " + ride.getAvailableSeats() + " / " + ride.getTotalSeats());
+            }
+            
             binding.tvDetailNote.setText(ride.getNote().isEmpty() ? "No additional notes" : ride.getNote());
 
             if (ride.getUserUid().equals(currentUserUid)) {
-                // Owner view
+                // Owner view: Show management tools
                 binding.tvYourPostingLabel.setVisibility(View.VISIBLE);
                 binding.layoutOwnerActions.setVisibility(View.VISIBLE);
                 binding.btnRequestSeat.setVisibility(View.GONE);
                 binding.btnMessageDriver.setVisibility(View.GONE);
             } else {
-                // Visitor view
+                // Visitor view: Show interaction tools
                 binding.tvYourPostingLabel.setVisibility(View.GONE);
                 binding.layoutOwnerActions.setVisibility(View.GONE);
                 
                 binding.btnMessageDriver.setVisibility(View.VISIBLE);
-                binding.btnMessageDriver.setText("Message " + ride.getDriverName());
+                binding.btnMessageDriver.setText("Message " + (ride.getType().equalsIgnoreCase("Request") ? "Requester" : "Driver"));
 
                 if (ride.getType().equalsIgnoreCase("Offer")) {
+                    // Logic for ride offers
                     if (ride.getAvailableSeats() > 0 && ride.getStatus().equals("active")) {
                         if (!dbHelper.hasAlreadyRequested(rideId, currentUserUid)) {
                             binding.btnRequestSeat.setVisibility(View.VISIBLE);
@@ -104,7 +128,7 @@ public class RideDetailsActivity extends AppCompatActivity {
                         binding.btnRequestSeat.setVisibility(View.GONE);
                     }
                 } else {
-                    // It's a Request
+                    // Logic for ride requests
                     if (ride.getStatus().equals("active")) {
                         if (!dbHelper.hasAlreadyRequested(rideId, currentUserUid)) {
                             binding.btnRequestSeat.setVisibility(View.VISIBLE);
@@ -123,6 +147,9 @@ public class RideDetailsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Submits a request to join the ride (if it's an offer) or to provide a ride (if it's a request).
+     */
     private void requestSeat() {
         if (dbHelper.hasAlreadyRequested(rideId, currentUserUid)) {
             Toast.makeText(this, "You have already responded to this ride", Toast.LENGTH_SHORT).show();
@@ -143,6 +170,9 @@ public class RideDetailsActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Shows a confirmation dialog before deleting the ride entry.
+     */
     private void showDeleteConfirmation() {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Ride")

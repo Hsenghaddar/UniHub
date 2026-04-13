@@ -1,5 +1,11 @@
 package com.example.unihub;
 
+/**
+ * Data model representing a request to join a ride.
+ *
+ * This class stores information about a user's request to participate in a specific ride,
+ * including the current status of the request (pending, approved, or rejected).
+ */
 public class RideRequest {
     private int id;
     private int rideId;
@@ -7,8 +13,20 @@ public class RideRequest {
     private String requesterName;
     private String status; // "pending", "approved", "rejected"
 
+    /**
+     * Default constructor for RideRequest.
+     */
     public RideRequest() {}
 
+    /**
+     * Full constructor for RideRequest.
+     *
+     * @param id The unique identifier of the ride request.
+     * @param rideId The identifier of the ride being requested.
+     * @param requesterUid The Firebase UID of the user making the request.
+     * @param requesterName The name of the user making the request.
+     * @param status The current status of the request ("pending", "approved", "rejected").
+     */
     public RideRequest(int id, int rideId, String requesterUid, String requesterName, String status) {
         this.id = id;
         this.rideId = rideId;

@@ -25,6 +25,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * ProfileActivity manages the user's personal profile information.
+ *
+ * Users can update their full name, university, and profile picture.
+ * It also handles account logout and integrates with the device camera
+ * and gallery for image selection.
+ */
 class ProfileActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProfileBinding
@@ -34,6 +41,7 @@ class ProfileActivity : AppCompatActivity() {
     private var selectedImageUri: Uri? = null
     private var cameraImageUri: Uri? = null
 
+    // Launcher for selecting an image from the gallery
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             val savedUri = saveImageToInternalStorage(it)
@@ -46,6 +54,7 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    // Launcher for taking a photo with the camera
     private val takePhotoLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             cameraImageUri?.let {
@@ -55,6 +64,7 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    // Launcher for requesting camera permissions
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -74,6 +84,7 @@ class ProfileActivity : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         sessionManager = SessionManager(this)
 
+        // Restore state after configuration changes (e.g., rotation)
         if (savedInstanceState != null) {
             cameraImageUri = savedInstanceState.getParcelable("cameraImageUri")
             selectedImageUri = savedInstanceState.getParcelable("selectedImageUri")
@@ -101,6 +112,7 @@ class ProfileActivity : AppCompatActivity() {
             auth.signOut()
             sessionManager.clearSession()
 
+            // Return to LoginActivity and clear the activity stack
             val intent = Intent(this, LoginActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
@@ -108,6 +120,9 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Displays a dialog with options to take a new photo or choose from the gallery.
+     */
     private fun showImagePickerOptions() {
         val options = arrayOf("Take Photo", "Choose from Gallery", "Cancel")
         val builder = AlertDialog.Builder(this)
@@ -122,6 +137,9 @@ class ProfileActivity : AppCompatActivity() {
         builder.show()
     }
 
+    /**
+     * Checks if camera permission is granted before launching the camera.
+     */
     private fun checkCameraPermissionAndOpen() {
         when {
             ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
@@ -133,10 +151,16 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Launches the system document picker for images.
+     */
     private fun startGallery() {
         pickImageLauncher.launch(arrayOf("image/*"))
     }
 
+    /**
+     * Prepares a file to store the camera image and launches the camera app.
+     */
     private fun startCamera() {
         try {
             val photoFile = createImageFile()
@@ -152,6 +176,9 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Creates a temporary image file in the external files directory.
+     */
     @Throws(IOException::class)
     private fun createImageFile(): File {
         val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -163,6 +190,9 @@ class ProfileActivity : AppCompatActivity() {
         )
     }
 
+    /**
+     * Saves an image from a given Uri into the app's internal storage for persistence.
+     */
     private fun saveImageToInternalStorage(uri: Uri): Uri? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
@@ -180,6 +210,9 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Populates the university selection spinner from the database.
+     */
     private fun setupUniversitySpinner() {
         val universities = db.getAllUniversities()
         val adapter = ArrayAdapter(
@@ -191,6 +224,9 @@ class ProfileActivity : AppCompatActivity() {
         binding.spinnerUniversityProfile.adapter = adapter
     }
 
+    /**
+     * Loads the current user's profile data into the UI fields.
+     */
     private fun loadUserData() {
         val firebaseUser = auth.currentUser ?: return
         val localUser = db.getUserByFirebaseUid(firebaseUser.uid) ?: return
@@ -219,6 +255,9 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Saves the updated profile information to the local SQLite database.
+     */
     private fun updateProfile() {
         val firebaseUser = auth.currentUser ?: return
         val fullName = binding.etProfileFullName.text.toString().trim()

@@ -2,9 +2,13 @@ package com.example.unihub;
 
 import java.io.Serializable;
 
+/**
+ * Ride data model representing a carpooling entry in the system.
+ * Implements Serializable to allow passing Ride objects between Activities via Intents.
+ */
 public class Ride implements Serializable {
     private int id;
-    private String userUid;
+    private String userUid; // Firebase UID of the user who created the ride
     private String driverName;
     private String type; // "Offer" or "Request"
     private String fromLocation;
@@ -14,16 +18,25 @@ public class Ride implements Serializable {
     private int totalSeats;
     private int availableSeats;
     private String note;
-    private String status; // "active", "full", "completed"
+    private String status; // Possible values: "active", "full", "completed"
     private int universityId;
-    private boolean hasNotification;
+    private boolean hasNotification; // Flag to indicate if there are unread updates for this ride
 
+    /**
+     * Default constructor required for some serialization frameworks.
+     */
     public Ride() {}
 
+    /**
+     * Constructor without notification flag (defaults to false).
+     */
     public Ride(int id, String userUid, String driverName, String type, String fromLocation, String toLocation, String date, String time, int totalSeats, int availableSeats, String note, String status, int universityId) {
         this(id, userUid, driverName, type, fromLocation, toLocation, date, time, totalSeats, availableSeats, note, status, universityId, false);
     }
 
+    /**
+     * Full constructor for Ride object.
+     */
     public Ride(int id, String userUid, String driverName, String type, String fromLocation, String toLocation, String date, String time, int totalSeats, int availableSeats, String note, String status, int universityId, boolean hasNotification) {
         this.id = id;
         this.userUid = userUid;
@@ -41,7 +54,8 @@ public class Ride implements Serializable {
         this.hasNotification = hasNotification;
     }
 
-    // Getters and Setters
+    // Getters and Setters with basic Java documentation
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 

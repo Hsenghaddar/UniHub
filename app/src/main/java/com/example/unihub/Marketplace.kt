@@ -23,6 +23,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Activity for listing new items in the UniHub marketplace.
+ *
+ * This class handles the creation of marketplace postings. It provides functionality to:
+ * - Capture images using the camera or select them from the gallery.
+ * - Save selected images to internal storage for persistent local access.
+ * - Collect item details such as title, description, category, price, and stock.
+ * - Persist the listing to the local SQLite database.
+ */
 class Marketplace : AppCompatActivity() {
 
     private lateinit var binding: ActivityMarketplaceBinding
@@ -30,6 +39,7 @@ class Marketplace : AppCompatActivity() {
     private var selectedImageUri: Uri? = null
     private var cameraImageUri: Uri? = null
 
+    /** Launcher for picking an image from the gallery. */
     private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             val savedUri = saveImageToInternalStorage(it)
@@ -43,6 +53,7 @@ class Marketplace : AppCompatActivity() {
         }
     }
 
+    /** Launcher for taking a photo with the camera. */
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             selectedImageUri = cameraImageUri
@@ -53,6 +64,7 @@ class Marketplace : AppCompatActivity() {
         }
     }
 
+    /** Launcher for requesting camera permission at runtime. */
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -72,6 +84,7 @@ class Marketplace : AppCompatActivity() {
 
         binding.btnBack.setOnClickListener { finish() }
 
+        // Restore image states during configuration changes (like rotation)
         if (savedInstanceState != null) {
             cameraImageUri = savedInstanceState.getParcelable("cameraImageUri")
             selectedImageUri = savedInstanceState.getParcelable("selectedImageUri")
@@ -100,6 +113,9 @@ class Marketplace : AppCompatActivity() {
         }
     }
 
+    /**
+     * Presents an option dialog for selecting an image source.
+     */
     private fun showImagePickerDialog() {
         val options = arrayOf("Take Photo", "Choose from Gallery", "Cancel")
         AlertDialog.Builder(this)
@@ -114,6 +130,9 @@ class Marketplace : AppCompatActivity() {
             .show()
     }
 
+    /**
+     * Verifies camera permissions and proceeds to open the camera if granted.
+     */
     private fun checkCameraPermissionAndOpen() {
         when {
             ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
@@ -125,6 +144,9 @@ class Marketplace : AppCompatActivity() {
         }
     }
 
+    /**
+     * Initializes the camera intent by creating a destination file and passing its Uri.
+     */
     private fun openCamera() {
         try {
             val photoFile = createImageFile()
@@ -140,6 +162,9 @@ class Marketplace : AppCompatActivity() {
         }
     }
 
+    /**
+     * Creates a unique file for an image capture.
+     */
     @Throws(IOException::class)
     private fun createImageFile(): File {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -147,6 +172,13 @@ class Marketplace : AppCompatActivity() {
         return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
     }
 
+    /**
+     * Copies an image from an external Uri to the application's internal file system.
+     * This ensures the app maintains access to the image even if the source is deleted or inaccessible.
+     *
+     * @param uri The source Uri of the image.
+     * @return The new Uri pointing to the internal file.
+     */
     private fun saveImageToInternalStorage(uri: Uri): Uri? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
@@ -164,6 +196,9 @@ class Marketplace : AppCompatActivity() {
         }
     }
 
+    /**
+     * Validates form inputs and records the new item in the database.
+     */
     private fun addItem() {
         val title = binding.etItemTitle.text.toString().trim()
         val description = binding.etItemDescription.text.toString().trim()
